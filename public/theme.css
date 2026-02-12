@@ -1,0 +1,43 @@
+
+:root{
+  --go-purple:#5A2DFF;
+  --go-purple-2:#7C6BFF;
+  --eco-green:#1AA37A;
+  --eco-mint:#7CF2C6;
+  --ink:#0e1b2a;
+  --muted:#5b6b7c;
+  --bg:#f6f7fb;
+  --card:#ffffff;
+  --border:#e6e9f2;
+  --shadow:0 10px 30px rgba(20,30,55,.10);
+  --r:18px;
+}
+/* subtle pattern */
+.bgPattern{
+  background:
+    radial-gradient(1200px 500px at 10% 10%, rgba(90,45,255,.12), transparent 60%),
+    radial-gradient(900px 420px at 90% 20%, rgba(26,163,122,.10), transparent 60%),
+    radial-gradient(900px 700px at 60% 100%, rgba(245,158,11,.07), transparent 60%),
+    var(--bg);
+}
+.brandBar{
+  display:flex; gap:10px; align-items:center; justify-content:space-between;
+  padding:10px 12px; border:1px solid var(--border); border-radius:16px;
+  background:linear-gradient(135deg, rgba(90,45,255,.06), rgba(26,163,122,.05));
+}
+.brandBar .left{display:flex; gap:10px; align-items:center}
+.badge{
+  display:inline-flex; gap:8px; align-items:center;
+  padding:6px 10px; border-radius:999px;
+  border:1px solid var(--border);
+  background:#fff; color:var(--muted); font-size:12px;
+}
+.btnPrimary{
+  background:linear-gradient(135deg, rgba(90,45,255,.95), rgba(26,163,122,.90));
+  color:#fff; border:none;
+}
+.btnPrimary:hover{filter:brightness(1.03)}
+.card{
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r); box-shadow:var(--shadow);
+}
