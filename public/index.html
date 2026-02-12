@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Operatie Oude Eik – Multiplayer</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#111a34;
+      --panel2:#0f1730;
+      --text:#e9ecf6;
+      --muted:#aab2d6;
+      --accent:#7cf2c6;
+      --accent2:#7aa7ff;
+      --warn:#ffd27a;
+      --bad:#ff7a7a;
+      --border:rgba(255,255,255,.10);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(122,167,255,.22), transparent 60%),
+        radial-gradient(1000px 500px at 90% 20%, rgba(124,242,198,.18), transparent 60%),
+        radial-gradient(900px 700px at 60% 100%, rgba(255,210,122,.12), transparent 60%),
+        var(--bg);
+      min-height:100vh;
+    }
+    header{max-width:1100px;margin:0 auto;padding:18px 16px 8px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,rgba(124,242,198,.9),rgba(122,167,255,.9));box-shadow:var(--shadow);position:relative}
+    .logo:after{content:"";position:absolute;inset:10px;border-radius:10px;background:rgba(11,16,32,.55);border:1px solid rgba(255,255,255,.12)}
+    h1{margin:0;font-size:20px}
+    .subtitle{color:var(--muted);margin-top:3px;font-size:13px;line-height:1.4}
+    main{max-width:1100px;margin:0 auto;padding:10px 16px 24px}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}
+    @media (max-width: 980px){.grid{grid-template-columns:1fr}}
+    .panel{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.03));border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+    .hd{padding:14px 16px;background:rgba(255,255,255,.04);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .title{font-weight:850;display:flex;align-items:center;gap:8px}
+    .body{padding:16px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);font-size:12px;white-space:nowrap}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .btn{appearance:none;border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--text);border-radius:12px;padding:10px 12px;font-weight:750;cursor:pointer}
+    .btn:hover{background:rgba(255,255,255,.09)}
+    .btn.primary{background:linear-gradient(135deg,rgba(124,242,198,.95),rgba(122,167,255,.85));color:#0b1020;border-color:rgba(255,255,255,.22)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .card{border:1px solid var(--border);background:rgba(255,255,255,.04);border-radius:16px;padding:12px}
+    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+    .kpi .box{border:1px solid var(--border);background:rgba(255,255,255,.04);border-radius:14px;padding:10px 12px}
+    .lbl{color:var(--muted);font-size:12px}
+    .val{font-size:18px;font-weight:900;margin-top:2px}
+    .roles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+    @media (max-width:680px){.roles{grid-template-columns:1fr}}
+    .role{border:1px solid var(--border);background:rgba(255,255,255,.04);border-radius:16px;padding:12px;position:relative;overflow:hidden}
+    .rhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .rname{font-weight:900;display:flex;align-items:center;gap:8px}
+    .rdesc{color:var(--muted);font-size:12px;line-height:1.4;margin-top:6px}
+    .badge{font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted)}
+    .badges{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+    .avatar{width:44px;height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.16);background:rgba(11,16,32,.35);display:grid;place-items:center;overflow:hidden}
+    .avatar svg{width:44px;height:44px;display:block}
+    .inputs{margin-top:12px}
+    textarea,input[type=text]{width:100%;border-radius:12px;border:1px solid var(--border);background:rgba(11,16,32,.35);color:var(--text);padding:10px 12px;font-size:13px;outline:none}
+    textarea{min-height:90px;resize:vertical}
+    .muted{color:var(--muted);font-size:12px;line-height:1.4}
+    .log{max-height:420px;overflow:auto;padding-right:6px}
+    .entry{border:1px solid var(--border);background:rgba(255,255,255,.04);border-radius:14px;padding:10px 10px;margin-bottom:8px}
+    .tag{font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);display:inline-flex;align-items:center;gap:6px;margin-bottom:6px}
+    .small{font-size:11px;color:var(--muted);margin-top:6px}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:rgba(18,26,51,.92);border:1px solid rgba(255,255,255,.14);box-shadow:var(--shadow);border-radius:14px;padding:10px 12px;color:var(--text);font-size:13px;opacity:0;pointer-events:none;transition:opacity .18s ease, transform .18s ease}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+    .voteRow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .voteBtn{border:1px solid var(--border);background:rgba(255,255,255,.05);border-radius:14px;padding:12px;cursor:pointer;font-weight:900;text-align:center}
+    .voteBtn:hover{background:rgba(255,255,255,.08)}
+    .voteBtn.active{outline:2px solid rgba(124,242,198,.9)}
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:980px){.split{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo"></div>
+    <div>
+      <h1>Operatie Oude Eik – Multiplayer</h1>
+      <div class="subtitle">Iedereen speelt tegelijk: 4 teams (G&O / Ecoresult / Bevoegd gezag / Aannemer) in één room. Eén facilitator bestuurt fases.</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <section class="panel">
+      <div class="hd">
+        <div class="title">🎮 Room</div>
+        <div class="row">
+          <span class="pill" id="roomPill">Niet verbonden</span>
+          <span class="pill" id="rolePill">Rol: —</span>
+        </div>
+      </div>
+      <div class="body">
+        <div class="split">
+          <div class="card">
+            <div style="font-weight:900;margin-bottom:8px">1) Maak of join een room</div>
+            <div class="row">
+              <button class="btn primary" id="btnCreate">Create room</button>
+              <input type="text" id="roomCode" placeholder="Room code (bijv. A7K3P)" style="max-width:230px"/>
+              <button class="btn" id="btnJoin">Join</button>
+              <button class="btn" id="btnJoinFac">Join als facilitator</button>
+            </div>
+            <div class="small">Tip: facilitator maakt room, deelt code op het scherm. Teams joinen met code via eigen laptop/telefoon.</div>
+          </div>
+
+          <div class="card">
+            <div style="font-weight:900;margin-bottom:8px">2) Claim je rol (team)</div>
+            <div class="row">
+              <input type="text" id="teamName" placeholder="Teamnaam (bijv. Team West)" />
+            </div>
+            <div class="row" style="margin-top:8px">
+              <button class="btn" data-role="G&O" id="claimGo">🏢 G&O</button>
+              <button class="btn" data-role="Ecoresult" id="claimEco">🌿 Ecoresult</button>
+              <button class="btn" data-role="IkWilNietMeewerken" id="claimGov">🏛️ Bevoegd gezag</button>
+              <button class="btn" data-role="Beunhaas" id="claimCon">🔨 Aannemer</button>
+            </div>
+            <div class="small">Als een rol al bezet is, kies een andere (of reset via facilitator).</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <div class="row" style="justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-weight:900">Huidige fase</div>
+              <div class="muted" id="phaseTitle">—</div>
+            </div>
+            <div class="row">
+              <span class="pill" id="timerPill">⏱ —</span>
+              <span class="pill">📈 Score: <b id="score">0</b></span>
+              <span class="pill">🚦 Risico: <b id="risk">0</b></span>
+            </div>
+          </div>
+          <div style="margin-top:10px;font-weight:800" id="promptTitle">Prompt</div>
+          <div class="muted" id="promptText">Join een room om te beginnen.</div>
+
+          <div id="complicationBox" class="card" style="margin-top:12px;display:none;border-style:dashed">
+            <div style="font-weight:900">🎴 Complicatie</div>
+            <div class="muted" id="complicationText"></div>
+          </div>
+
+          <div class="inputs" id="inputArea" style="display:none">
+            <div id="textInput" style="display:none">
+              <div class="muted" style="margin-bottom:6px">Typ je antwoord (kort en concreet):</div>
+              <textarea id="answer"></textarea>
+              <div class="row" style="margin-top:8px;justify-content:flex-end">
+                <button class="btn primary" id="btnSubmitText">Inzenden</button>
+              </div>
+            </div>
+
+            <div id="voteInput" style="display:none">
+              <div class="muted" style="margin-bottom:6px">Stem:</div>
+              <div class="voteRow">
+                <div class="voteBtn" data-v="A" id="voteA">A – Nu quickscan</div>
+                <div class="voteBtn" data-v="B" id="voteB">B – Eerst uitwerken</div>
+                <div class="voteBtn" data-v="C" id="voteC">C – Alles tegelijk</div>
+              </div>
+              <div class="row" style="margin-top:8px;justify-content:flex-end">
+                <button class="btn primary" id="btnSubmitVote">Stem inzenden</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <div class="hd">
+            <div class="title">👥 Teams in de room</div>
+            <div class="pill">Inzendingen: <b id="subCount">0/4</b></div>
+          </div>
+          <div class="body">
+            <div class="roles" id="teams"></div>
+            <div class="muted" style="margin-top:8px">Groen = online. Inzending verschijnt zodra team heeft verzonden.</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:12px" id="facPanel" style="display:none">
+          <div class="hd">
+            <div class="title">🧑‍🏫 Facilitator controls</div>
+            <div class="row">
+              <button class="btn primary" id="btnStartPhase">Start fase</button>
+              <button class="btn" id="btnNextPhase">Volgende fase</button>
+              <button class="btn" id="btnDraw">Trek complicatie</button>
+              <button class="btn" id="btnReset">Reset room</button>
+            </div>
+          </div>
+          <div class="body">
+            <div class="muted">Facilitator start en wisselt fases. Trek complicatie in ronde 2. Na stemronde wordt automatisch ‘gevolg’ verwerkt in score/risico.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="hd">
+        <div class="title">📝 Live logboek</div>
+        <div class="row">
+          <button class="btn" id="btnCopy">Kopieer log</button>
+        </div>
+      </div>
+      <div class="body">
+        <div class="muted">Gebruik dit voor nabespreking. (Laatste 30 entries)</div>
+        <div style="height:10px"></div>
+        <div class="log" id="log"></div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const socket = io();
+  const $ = (id)=>document.getElementById(id);
+  let roomId = null;
+  let myRole = null;
+  let isFacilitator = false;
+  let state = null;
+  let phaseCountdown = null;
+  let selectedVote = null;
+
+  function toast(msg){
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 1500);
+  }
+
+  function avatarSvg(kind){
+    // simple cute SVG avatars
+    const map = {
+      "G&O": ["#7aa7ff","#0b1020","🏢"],
+      "Ecoresult": ["#7cf2c6","#0b1020","🌿"],
+      "IkWilNietMeewerken": ["#ffd27a","#0b1020","🏛️"],
+      "Beunhaas": ["#ff7a7a","#0b1020","🔨"]
+    };
+    const [c, bg, emoji] = map[kind] || ["#aab2d6","#0b1020","🙂"];
+    return `
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${kind}">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="${c}" stop-opacity="0.95"/>
+            <stop offset="1" stop-color="#7aa7ff" stop-opacity="0.35"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="64" height="64" rx="18" fill="${bg}" opacity="0.5"/>
+        <circle cx="32" cy="28" r="16" fill="url(#g)"/>
+        <rect x="14" y="42" width="36" height="18" rx="10" fill="url(#g)" opacity="0.9"/>
+        <text x="32" y="33" text-anchor="middle" font-size="14">${emoji}</text>
+      </svg>
+    `;
+  }
+
+  function setRoomPill(){
+    $("roomPill").textContent = roomId ? `Room: ${roomId}` : "Niet verbonden";
+    $("rolePill").textContent = myRole ? `Rol: ${myRole}` : "Rol: —";
+  }
+
+  function renderTeams(teams, submissions){
+    const wrap = $("teams");
+    wrap.innerHTML = "";
+    const roles = ["G&O","Ecoresult","IkWilNietMeewerken","Beunhaas"];
+    let subCount = 0;
+    roles.forEach(r=>{
+      const t = teams && teams[r];
+      const online = t && t.connected;
+      const name = (t && t.name) ? t.name : "— (vrij)";
+      const sub = submissions && submissions[r];
+      if(sub) subCount++;
+
+      const el = document.createElement("div");
+      el.className = "role";
+      el.innerHTML = `
+        <div class="rhead">
+          <div class="rname">
+            <div class="avatar">${avatarSvg(r)}</div>
+            <div>
+              <div>${r}</div>
+              <div class="small">${online ? "🟢 online" : "⚫ offline / vrij"} • <span style="color:var(--muted)">${name}</span></div>
+            </div>
+          </div>
+          <span class="badge">${sub ? "✅ ingezonden" : "—"}</span>
+        </div>
+        <div class="rdesc">${roleHint(r)}</div>
+        <div class="badges">
+          ${sub ? `<span class="badge">Laatste: ${sub.type === "vote" ? "stem "+sub.payload : "antwoord"}</span>` : ""}
+        </div>
+      `;
+      wrap.appendChild(el);
+    });
+    $("subCount").textContent = `${subCount}/4`;
+  }
+
+  function roleHint(r){
+    if(r==="G&O") return "Opdrachtgever: scope, planning, bewoners, budget.";
+    if(r==="Ecoresult") return "Adviesbureau: vragen stellen, onderzoek, vergunningstrategie.";
+    if(r==="IkWilNietMeewerken") return "Bevoegd gezag: volledigheid, eisen, termijnen.";
+    if(r==="Beunhaas") return "Aannemer: startmoment, uitvoerbaarheid, druk op planning.";
+    return "";
+  }
+
+  function setPhase(phase, startedAt){
+    $("phaseTitle").textContent = phase ? phase.title : "—";
+    $("promptText").textContent = phase ? phase.prompt : "—";
+    $("promptTitle").textContent = phase ? "Prompt" : "—";
+    // show/hide input area based on phase input and role claimed
+    const canSubmit = !!myRole && !isFacilitator && phase && phase.input;
+    $("inputArea").style.display = canSubmit ? "block" : "none";
+    $("textInput").style.display = (canSubmit && phase.input.type !== "vote") ? "block" : "none";
+    $("voteInput").style.display = (canSubmit && phase.input.type === "vote") ? "block" : "none";
+    if(phase && phase.input && phase.input.type === "vote"){
+      setVote(null);
+    }
+    $("answer").value = "";
+  }
+
+  function setVote(v){
+    selectedVote = v;
+    ["A","B","C"].forEach(k=>{
+      const el = document.querySelector(`[data-v="${k}"]`);
+      if(el) el.classList.toggle("active", k===v);
+    });
+  }
+
+  function setKPIs(score, risk){
+    $("score").textContent = score ?? 0;
+    $("risk").textContent = risk ?? 0;
+  }
+
+  function setComplication(c){
+    if(!c){
+      $("complicationBox").style.display="none";
+      return;
+    }
+    $("complicationBox").style.display="block";
+    $("complicationText").innerHTML = `<b>${c.icon} ${c.title}:</b> ${c.text} <span style="color:var(--muted)">(impact: score ${c.score>=0?"+":""}${c.score}, risico ${c.risk>=0?"+":""}${c.risk})</span>`;
+  }
+
+  function renderLog(log){
+    const wrap = $("log");
+    wrap.innerHTML = "";
+    (log||[]).slice().reverse().forEach(e=>{
+      const div = document.createElement("div");
+      div.className = "entry";
+      div.innerHTML = `
+        <div class="tag">📌 ${e.tag}</div>
+        <div>${e.msg}</div>
+        <div class="small">${new Date(e.ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+      `;
+      wrap.appendChild(div);
+    });
+  }
+
+  function startCountdown(phase){
+    stopCountdown();
+    if(!state || !state.phaseStartedAt || !phase || !phase.durationSec){
+      $("timerPill").textContent = "⏱ —";
+      return;
+    }
+    const startMs = new Date(state.phaseStartedAt).getTime();
+    const durMs = phase.durationSec * 1000;
+
+    phaseCountdown = setInterval(()=>{
+      const now = Date.now();
+      const remaining = Math.max(0, (startMs + durMs) - now);
+      const sec = Math.ceil(remaining/1000);
+      const m = Math.floor(sec/60).toString().padStart(2,'0');
+      const s = (sec%60).toString().padStart(2,'0');
+      $("timerPill").textContent = `⏱ ${m}:${s}`;
+    }, 250);
+  }
+
+  function stopCountdown(){
+    if(phaseCountdown){ clearInterval(phaseCountdown); phaseCountdown=null; }
+  }
+
+  // Socket events
+  socket.on("room_created", ({roomId: rid})=>{
+    $("roomCode").value = rid;
+    toast("Room aangemaakt");
+  });
+
+  socket.on("joined", ({roomId: rid, role})=>{
+    roomId = rid;
+    isFacilitator = (role==="Facilitator");
+    myRole = isFacilitator ? "Facilitator" : myRole;
+    setRoomPill();
+    $("facPanel").style.display = isFacilitator ? "block" : "none";
+    toast(isFacilitator ? "Facilitator verbonden" : "Verbonden");
+  });
+
+  socket.on("room_state", (s)=>{
+    state = s;
+    setRoomPill();
+    setKPIs(s.score, s.risk);
+    setComplication(s.currentComplication);
+    renderTeams(s.teams, s.submissions);
+    renderLog(s.log);
+    setPhase(s.phase, s.phaseStartedAt);
+    startCountdown(s.phase);
+  });
+
+  socket.on("error_msg", (msg)=>toast(msg));
+
+  // UI actions
+  $("btnCreate").onclick = ()=> socket.emit("create_room");
+  $("btnJoin").onclick = ()=>{
+    const code = $("roomCode").value.trim().toUpperCase();
+    if(!code) return toast("Vul room code in");
+    socket.emit("join_room", { roomId: code, asFacilitator: false });
+  };
+  $("btnJoinFac").onclick = ()=>{
+    const code = $("roomCode").value.trim().toUpperCase();
+    if(!code) return toast("Vul room code in");
+    socket.emit("join_room", { roomId: code, asFacilitator: true });
+  };
+
+  document.querySelectorAll("[data-role]").forEach(btn=>{
+    btn.onclick = ()=>{
+      if(!roomId) return toast("Join eerst een room");
+      const role = btn.getAttribute("data-role");
+      const name = $("teamName").value.trim() || role;
+      socket.emit("claim_role", { roomId, roleKey: role, teamName: name });
+      myRole = role;
+      setRoomPill();
+      toast(`Rol geclaimd: ${role}`);
+    };
+  });
+
+  $("btnSubmitText").onclick = ()=>{
+    if(!roomId || !myRole) return;
+    const text = $("answer").value.trim();
+    if(!text) return toast("Typ een antwoord");
+    socket.emit("submit", { roomId, roleKey: myRole, type: "text", payload: text });
+    toast("Ingezonden");
+  };
+
+  document.querySelectorAll(".voteBtn").forEach(b=>{
+    b.onclick = ()=> setVote(b.getAttribute("data-v"));
+  });
+
+  $("btnSubmitVote").onclick = ()=>{
+    if(!roomId || !myRole) return;
+    if(!selectedVote) return toast("Kies A/B/C");
+    socket.emit("submit", { roomId, roleKey: myRole, type: "vote", payload: selectedVote });
+    toast("Stem ingezonden");
+  };
+
+  // Facilitator controls
+  $("btnStartPhase").onclick = ()=> roomId && socket.emit("start_phase", {roomId});
+  $("btnNextPhase").onclick = ()=> roomId && socket.emit("next_phase", {roomId});
+  $("btnDraw").onclick = ()=> roomId && socket.emit("draw_complication", {roomId});
+  $("btnReset").onclick = ()=> roomId && socket.emit("reset_room", {roomId});
+
+  $("btnCopy").onclick = async ()=>{
+    if(!state) return;
+    const lines = [];
+    lines.push(`Operatie Oude Eik – Room ${state.roomId}`);
+    lines.push(`Score: ${state.score} | Risico: ${state.risk}`);
+    lines.push(`Fase: ${state.phase?.title}`);
+    lines.push("");
+    (state.log||[]).forEach(e=>{
+      lines.push(`[${new Date(e.ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}] ${e.tag}: ${e.msg.replace(/<[^>]*>/g,'')}`);
+    });
+    await navigator.clipboard.writeText(lines.join("\n"));
+    toast("Log gekopieerd");
+  };
+
+</script>
+<div class="toast" id="toast"></div>
+</body>
+</html>
