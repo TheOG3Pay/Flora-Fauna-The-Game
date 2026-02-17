@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Operatie Oude Eik – Display</title>
+  <link rel="stylesheet" href="/theme.css"/>
+  <style>
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .timer{font-size:44px;font-weight:800;letter-spacing:1px}
+    .timer.warn{color:#b7791f}
+    .timer.danger{color:#c53030}
+    .scenarioTitle{font-size:34px;font-weight:800;margin:18px 0 8px}
+    .narrative{font-size:22px;line-height:1.5;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:18px;white-space:pre-wrap}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:14px}
+    .pill{display:inline-flex;align-items:center;gap:10px;border-radius:999px;padding:8px 12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);font-weight:700}
+    .dot{width:10px;height:10px;border-radius:999px;background:#999}
+    .dot.green{background:#38a169}.dot.orange{background:#dd6b20}.dot.red{background:#e53e3e}
+    .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}
+    .kpi{padding:12px;border-radius:16px;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.10)}
+    .kpi .label{opacity:.8;font-size:12px}
+    .kpi .value{font-size:18px;font-weight:800;margin-top:4px}
+    .statusRow{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+    .bigmsg{margin-top:14px;font-size:22px;font-weight:800}
+    .suggestions{margin-top:12px}
+    .suggestions li{font-size:18px;line-height:1.4;margin:6px 0}
+    .muted{opacity:.8}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:10px">
+        <img src="/assets/logo_go.svg" alt="G&O" style="height:34px"/>
+        <span class="muted">×</span>
+        <img src="/assets/logo_eco.svg" alt="Ecoresult" style="height:34px"/>
+      </div>
+      <div>
+        <div class="pill"><span class="dot" id="phaseDot"></span><span id="phaseTxt">Lobby</span></div>
+      </div>
+      <div class="timer" id="timer">--:--</div>
+    </div>
+
+    <div class="scenarioTitle" id="title">Operatie Oude Eik</div>
+    <div class="narrative" id="narrative">Voer een roomcode in op dit scherm via de facilitator.</div>
+
+    <div class="statusRow" id="teamStatus"></div>
+
+    <div class="card" id="transparencyBox" style="display:none;">
+      <div style="font-size:18px;font-weight:800;margin-bottom:6px;">Transparantie actief</div>
+      <div class="muted">Suggesties om tot compromis (groen) te komen:</div>
+      <ul class="suggestions" id="suggestions"></ul>
+    </div>
+
+    <div class="card" id="outcomeBox" style="display:none;margin-top:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="font-size:18px;font-weight:800">Uitkomst</div>
+        <div class="pill"><span class="dot" id="overallDot"></span><span id="overallTxt">--</span></div>
+      </div>
+      <div class="grid" id="perRole"></div>
+    </div>
+
+    <div class="card" id="reflectionBox" style="display:none;margin-top:12px;">
+      <div style="font-size:22px;font-weight:900">I-GO Reflectiemoment</div>
+      <div style="font-size:18px;margin-top:6px;">Wat hebben jullie in deze ronde geleerd?</div>
+      <div class="muted" style="margin-top:6px;">Reflecties worden vertrouwelijk opgeslagen via I-GO en kunnen worden gebruikt voor verdere procesverbetering. Alleen zichtbaar voor de facilitator.</div>
+    </div>
+  </div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+let roomId = "";
+function qs(k){ return new URLSearchParams(location.search).get(k); }
+roomId = (qs("room")||"").toUpperCase();
+
+function mmss(sec){
+  const m = Math.floor(sec/60);
+  const s = sec%60;
+  return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+}
+function dotClass(color){
+  if(color==="green") return "dot green";
+  if(color==="orange") return "dot orange";
+  if(color==="red") return "dot red";
+  return "dot";
+}
+function phaseLabel(p){
+  if(p==="lobby") return "Lobby";
+  if(p==="scenario") return "Scenario";
+  if(p==="reflection") return "Reflectie";
+  if(p==="done") return "Einde";
+  return p;
+}
+
+function render(state){
+  document.getElementById("phaseTxt").textContent = phaseLabel(state.phase);
+  document.getElementById("phaseDot").className = dotClass(state.phase==="scenario"?"orange":(state.phase==="reflection"?"green":""));
+
+  const t = document.getElementById("timer");
+  t.textContent = state.phase==="lobby" ? "--:--" : mmss(state.remaining||0);
+  t.classList.toggle("warn", (state.remaining||0) <= 30 && (state.remaining||0) > 10 && state.phase!=="lobby");
+  t.classList.toggle("danger", (state.remaining||0) <= 10 && state.phase!=="lobby");
+
+  // scenario text
+  if(state.scenario){
+    document.getElementById("title").textContent = state.scenario.title;
+    document.getElementById("narrative").textContent = state.scenario.narrative;
+  }
+
+  // team status
+  const el = document.getElementById("teamStatus");
+  el.innerHTML = "";
+  const roles = ["G&O","Ecoresult","IkWilNietMeewerken","Beunhaas"];
+  roles.forEach(r=>{
+    const team = state.teams?.[r];
+    const chosen = state.choices?.[r]?.choiceKey;
+    const pill = document.createElement("div");
+    pill.className = "pill";
+    const d = document.createElement("span");
+    d.className = "dot";
+    if(state.phase==="scenario"){
+      d.className = chosen ? "dot green" : (team?.connected ? "dot orange" : "dot");
+    }
+    if(state.phase==="reflection"){
+      d.className = "dot orange";
+    }
+    const txt = document.createElement("span");
+    txt.textContent = `${r}: ${team?.connected ? (chosen ? "Keuze binnen" : "Wacht...") : "Niet verbonden"}`;
+    pill.appendChild(d); pill.appendChild(txt);
+    el.appendChild(pill);
+  });
+
+  // transparency
+  const tb = document.getElementById("transparencyBox");
+  tb.style.display = state.transparency && state.phase==="scenario" ? "block" : "none";
+  const sug = document.getElementById("suggestions");
+  sug.innerHTML = "";
+  if(state.scenario && state.transparency){
+    (state.display?.suggestions || state.outcome?.suggestions || []).forEach(s=>{
+      const li = document.createElement("li");
+      li.textContent = s;
+      sug.appendChild(li);
+    });
+  }
+
+  // outcome
+  const ob = document.getElementById("outcomeBox");
+  ob.style.display = state.outcome ? "block" : "none";
+  if(state.outcome){
+    document.getElementById("overallTxt").textContent = state.outcome.overall.toUpperCase();
+    document.getElementById("overallDot").className = dotClass(state.outcome.overall);
+    const pr = document.getElementById("perRole");
+    pr.innerHTML = "";
+    Object.entries(state.outcome.perRole||{}).forEach(([role, v])=>{
+      const c = document.createElement("div");
+      c.className = "card";
+      c.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="font-weight:900;font-size:16px">${role}</div>
+        <div class="pill"><span class="${dotClass(v.color)}"></span><span>${(v.choiceKey||"-")}</span></div>
+      </div>
+      <div class="muted" style="margin-top:6px">Status: ${v.color.toUpperCase()}</div>`;
+      pr.appendChild(c);
+    });
+  }
+
+  // reflection prompt on display (no answers shown)
+  document.getElementById("reflectionBox").style.display = state.phase==="reflection" ? "block" : "none";
+}
+
+socket.on("connect", ()=>{
+  if(!roomId){
+    // show hint
+  } else {
+    socket.emit("join_room", { roomId, mode: "display" });
+  }
+});
+socket.on("room_state_display", render);
+socket.on("room_state", render); // fallback
+</script>
+</body>
+</html>

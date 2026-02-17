@@ -1,293 +1,260 @@
 <!doctype html>
-<html lang="nl"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Operatie Oude Eik – Facilitator (v4.1)</title>
-<script src="/socket.io/socket.io.js"></script>
-<link rel="stylesheet" href="/theme.css"/>
-<style>
-:root{--bg:#0b1020;--text:#e9ecf6;--muted:#aab2d6;--border:rgba(255,255,255,.10);--shadow:0 10px 30px rgba(0,0,0,.35);--r:18px}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);
-background:radial-gradient(1200px 600px at 10% 10%, rgba(90,45,255,.22), transparent 60%),
-radial-gradient(1000px 500px at 90% 20%, rgba(26,163,122,.18), transparent 60%),
-radial-gradient(900px 700px at 60% 100%, rgba(245,158,11,.12), transparent 60%), var(--bg);min-height:100vh}
-header{max-width:1240px;margin:0 auto;padding:18px 16px 8px}
-main{max-width:1240px;margin:0 auto;padding:10px 16px 24px}
-.grid{display:grid;grid-template-columns:1.25fr .75fr;gap:12px}
-@media(max-width:1040px){.grid{grid-template-columns:1fr}}
-.panel{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.03));border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
-.hd{padding:14px 16px;background:rgba(255,255,255,.04);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;align-items:center}
-.body{padding:16px}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.pill{display:inline-flex;gap:8px;align-items:center;padding:7px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);font-size:12px}
-.btn{border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--text);border-radius:14px;padding:10px 12px;font-weight:900;cursor:pointer}
-.btn.primary{background:linear-gradient(135deg,rgba(90,45,255,.95),rgba(26,163,122,.90));color:#0b1020;border-color:rgba(255,255,255,.22)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-input{padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(11,16,32,.35);color:var(--text);outline:none}
-.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
-@media(max-width:980px){.kpi{grid-template-columns:repeat(2,1fr)}}
-.kpi .box{border:1px solid var(--border);background:rgba(255,255,255,.04);border-radius:16px;padding:10px 12px}
-.lbl{color:var(--muted);font-size:12px}
-.val{font-size:18px;font-weight:950;margin-top:2px}
-.sc{border:1px solid var(--border);background:rgba(15,23,48,.55);border-radius:18px;padding:12px;margin-top:12px}
-.sc h3{margin:0 0 6px;font-size:15px}
-.muted{color:var(--muted);font-size:13px;line-height:1.45}
-.teams{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
-@media(max-width:680px){.teams{grid-template-columns:1fr}}
-.team{border:1px solid var(--border);background:rgba(255,255,255,.04);border-radius:16px;padding:12px}
-.log{max-height:520px;overflow:auto;padding-right:6px}
-.entry{border:1px solid var(--border);background:rgba(255,255,255,.04);border-radius:16px;padding:10px;margin-bottom:8px}
-.tag{font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);display:inline-flex;gap:6px;margin-bottom:6px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:rgba(18,26,51,.92);border:1px solid rgba(255,255,255,.14);box-shadow:var(--shadow);border-radius:14px;padding:10px 12px;color:var(--text);font-size:13px;opacity:0;pointer-events:none;transition:.18s}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
-.switch{display:inline-flex;gap:10px;align-items:center}
-.toggle{width:46px;height:28px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.08);position:relative;cursor:pointer}
-.knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;transition:.15s}
-.toggle.on{background:linear-gradient(135deg,rgba(90,45,255,.95),rgba(26,163,122,.90))}
-.toggle.on .knob{left:21px}
-.brandRow{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.brandLeft{display:flex;gap:10px;align-items:center}
-.heroIcon{width:44px;height:44px;border-radius:16px;background:linear-gradient(135deg,rgba(90,45,255,.95),rgba(26,163,122,.90));box-shadow:var(--shadow);display:grid;place-items:center;color:#0b1020;font-weight:950}
-.imgPanel{border:1px solid var(--border);background:rgba(255,255,255,.03);border-radius:18px;overflow:hidden;margin-top:10px}
-.imgPanel img{width:100%;display:block}
-.imgCap{padding:10px 12px;border-top:1px solid var(--border);color:rgba(255,255,255,.75);font-size:12px;line-height:1.35}
-.trustBars{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
-@media(max-width:680px){.trustBars{grid-template-columns:1fr}}
-.bar{border:1px solid var(--border);border-radius:16px;padding:10px 12px;background:rgba(255,255,255,.04)}
-.barTop{display:flex;justify-content:space-between;gap:10px;align-items:center}
-.track{height:10px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden;margin-top:8px}
-.fill{height:100%;border-radius:999px;background:linear-gradient(135deg,rgba(124,242,198,.95),rgba(122,167,255,.85));width:50%}
-.fill.neg{background:linear-gradient(135deg,rgba(245,158,11,.95),rgba(239,68,68,.85))}
-</style></head>
+<html lang="nl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Operatie Oude Eik – Facilitator</title>
+  <link rel="stylesheet" href="/theme.css"/>
+  <style>
+    .wrap{max-width:760px;margin:0 auto;padding:18px}
+    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:14px;margin-top:12px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .btn{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);cursor:pointer;font-weight:900}
+    .btn.primary{background:rgba(72,187,120,.22);border-color:rgba(72,187,120,.35)}
+    .btn.warn{background:rgba(221,107,32,.18);border-color:rgba(221,107,32,.30)}
+    .btn.danger{background:rgba(229,62,62,.18);border-color:rgba(229,62,62,.30)}
+    input{border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);color:#fff;padding:10px 12px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .big{font-size:28px;font-weight:1000}
+    .muted{opacity:.85}
+    .pill{display:inline-flex;align-items:center;gap:10px;border-radius:999px;padding:8px 12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);font-weight:800}
+    .dot{width:10px;height:10px;border-radius:999px;background:#999}
+    .dot.green{background:#38a169}.dot.orange{background:#dd6b20}.dot.red{background:#e53e3e}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    a{color:#fff}
+    .log{max-height:240px;overflow:auto;font-size:12px;line-height:1.35;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px}
+    .log div{opacity:.9;margin:4px 0}
+  </style>
+</head>
 <body>
-<header>
-  <div class="brandRow">
-    <div class="brandLeft">
-      <div class="heroIcon">OE</div>
+<div class="wrap">
+  <div class="row">
+    <div style="display:flex;align-items:center;gap:10px">
+      <img src="/assets/logo_go.svg" alt="G&O" style="height:30px"/>
+      <span class="muted">×</span>
+      <img src="/assets/logo_eco.svg" alt="Ecoresult" style="height:30px"/>
+    </div>
+    <div class="pill"><span class="dot" id="phaseDot"></span><span id="phaseTxt">Lobby</span></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
       <div>
-        <div style="font-weight:950;font-size:20px">Operatie Oude Eik – Facilitator</div>
-        <div class="muted">Control room voor Vastgoedlab: eco-traject, proceskeuzes en afhankelijkheden.</div>
+        <div class="muted">Roomcode</div>
+        <div class="big mono" id="roomCode">-----</div>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="createBtn">Nieuwe room</button>
+        <input id="joinInput" placeholder="Roomcode" maxlength="5" class="mono" style="text-transform:uppercase;width:120px"/>
+        <button class="btn" id="joinBtn">Join</button>
       </div>
     </div>
-    <div class="brandLeft" style="gap:8px">
-      <img src="/assets/logo_go.svg" alt="G&O" height="34"/>
-      <img src="/assets/logo_eco.svg" alt="Ecoresult" height="34"/>
-      <span class="pill">⚡ Innovatie</span>
+    <div class="muted" style="margin-top:10px">
+      Display-scherm: <span class="mono" id="displayLink">—</span><br/>
+      Team-scherm: <span class="mono" id="teamLink">—</span>
     </div>
   </div>
-</header>
 
-<main>
-  <div class="grid">
-    <section class="panel">
-      <div class="hd">
-        <div style="font-weight:950">🧑‍🏫 Control room</div>
-        <div class="row">
-          <span class="pill" id="roomPill">Room: —</span>
-          <span class="pill">Status: <b id="status">Niet verbonden</b></span>
-          <span class="pill">OpenAI key: <b id="keyStatus">check…</b></span>
-        </div>
-      </div>
-      <div class="body">
-        <div class="row">
-          <button class="btn primary" id="btnCreate">Create room</button>
-          <input id="room" placeholder="Roomcode" style="width:160px;text-transform:uppercase"/>
-          <button class="btn" id="btnJoin">Join as facilitator</button>
-          <a class="pill" href="/" target="_blank">Open player landing ↗</a>
-        </div>
-
-        <div class="sc">
-          <h3>AI instellingen</h3>
-          <div class="row" style="margin-top:10px">
-            <div class="switch">
-              <div class="toggle" id="aiToggle"><div class="knob"></div></div>
-              <div>
-                <div style="font-weight:900">AI-mode</div>
-                <div class="muted">Variatie in scenario’s + rondes (A/B/C per rol).</div>
-              </div>
-            </div>
-            <div class="switch">
-              <div class="toggle on" id="imgToggle"><div class="knob"></div></div>
-              <div>
-                <div style="font-weight:900">AI-beelden</div>
-                <div class="muted">Genereert een beeld per ronde (kost tijd/credits).</div>
-              </div>
-            </div>
-            <span class="pill" id="aiStatePill">AI: uit</span>
-          </div>
-          <div class="muted" id="aiError" style="margin-top:10px;display:none"></div>
-        </div>
-
-        <div class="kpi">
-          <div class="box"><div class="lbl">📈 Score</div><div class="val" id="score">0</div></div>
-          <div class="box"><div class="lbl">🚦 Risico</div><div class="val" id="risk">0</div></div>
-          <div class="box"><div class="lbl">🤝 Trust totaal</div><div class="val" id="trustTotal">0</div></div>
-          <div class="box"><div class="lbl">🧭 Ronde</div><div class="val" id="roundNo">—</div></div>
-        </div>
-
-        <div class="sc">
-          <h3>Scenario</h3>
-          <div class="muted" id="scenarioText">Maak/join een room. Zet eventueel AI aan. Klik daarna op “Start game”.</div>
-        </div>
-
-        <div class="sc">
-          <h3>Ronde & visual</h3>
-          <div class="muted" id="roundText">—</div>
-          <div class="imgPanel" id="imgPanel" style="display:none">
-            <img id="roundImg" alt="Ronde visual"/>
-            <div class="imgCap" id="imgCap">—</div>
-          </div>
-          <div class="muted" id="imgPrompt" style="margin-top:10px">🖼️ Image prompt: —</div>
-          <div class="row" style="margin-top:10px">
-            <button class="btn primary" id="btnStart" disabled>Start game</button>
-            <button class="btn" id="btnNewScenario" disabled>Nieuw scenario</button>
-            <button class="btn" id="btnReset" disabled>Reset room</button>
-          </div>
-
-          <div class="trustBars" id="trustBars"></div>
-        </div>
-
-        <div class="sc">
-          <h3>Teams & keuzes</h3>
-          <div class="teams" id="teams"></div>
-          <div class="muted" style="margin-top:8px">Wanneer alle 4 rollen gekozen hebben, gaat de game automatisch naar de volgende ronde.</div>
-        </div>
-      </div>
-    </section>
-
-    <aside class="panel">
-      <div class="hd"><div style="font-weight:950">📝 Live logboek</div>
-        <button class="btn" id="btnCopy">Kopieer log</button>
-      </div>
-      <div class="body"><div class="log" id="log"></div></div>
-    </aside>
+  <div class="card">
+    <div class="row">
+      <button class="btn primary" id="startBtn">Start spel (15 min)</button>
+      <button class="btn warn" id="nextBtn">Volgende (end/next)</button>
+      <button class="btn warn" id="forceTransBtn">Force transparantie</button>
+      <button class="btn danger" id="resetBtn">Reset room</button>
+    </div>
+    <div class="muted" style="margin-top:10px">
+      Spel: 3 scenario’s (5 min) + reflectie (1 min) na elke ronde. Reflecties zijn privé en alleen zichtbaar voor jou (facilitator).
+    </div>
   </div>
-</main>
 
-<div class="toast" id="toast"></div>
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="muted">Reflecties ontvangen</div>
+        <div class="big mono" id="reflCount">0</div>
+      </div>
+      <div class="row">
+        <button class="btn" id="downloadJsonBtn">Download rapport (JSON)</button>
+        <button class="btn" id="downloadHtmlBtn">Download rapport (HTML)</button>
+      </div>
+    </div>
+    <div class="muted" style="margin-top:10px">Rapport bevat: log + reflecties per rol per scenario. (Alleen voor facilitator.)</div>
+  </div>
 
+  <div class="card">
+    <div class="muted">Live status</div>
+    <div class="grid" id="teamGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="muted">Log</div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="muted" id="err" style="margin-top:12px;color:#ffbdbd"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
 <script>
-const socket=io(); const $=(id)=>document.getElementById(id);
-let roomId=null, state=null;
-let aiEnabled=false, imgEnabled=true, hasKey=false;
+const socket = io();
+let roomId = "";
+let token = localStorage.getItem("fac_token") || "";
 
-function toast(m){const t=$("toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1400);}
-async function loadConfig(){
-  try{ const r=await fetch("/api/config"); const j=await r.json(); hasKey=!!j.hasOpenAIKey; $("keyStatus").textContent=hasKey?"aanwezig":"niet gevonden"; }
-  catch(e){ $("keyStatus").textContent="onbekend"; }
+function qs(k){ return new URLSearchParams(location.search).get(k); }
+function dotClass(color){
+  if(color==="green") return "dot green";
+  if(color==="orange") return "dot orange";
+  if(color==="red") return "dot red";
+  return "dot";
 }
-loadConfig();
-
-function setToggle(el,on){ el.classList.toggle("on", !!on); }
-function updateAiPill(){ $("aiStatePill").textContent = `AI: ${aiEnabled?"aan":"uit"} • beelden: ${imgEnabled?"aan":"uit"}`; }
-function sendAiMode(){ if(!roomId) return toast("Join eerst een room"); socket.emit("set_ai_mode",{roomId,enabled:aiEnabled,imagesEnabled:imgEnabled}); }
-
-$("aiToggle").onclick=()=>{ aiEnabled=!aiEnabled; setToggle($("aiToggle"),aiEnabled); updateAiPill(); sendAiMode(); };
-$("imgToggle").onclick=()=>{ imgEnabled=!imgEnabled; setToggle($("imgToggle"),imgEnabled); updateAiPill(); sendAiMode(); };
-setToggle($("aiToggle"),aiEnabled); setToggle($("imgToggle"),imgEnabled); updateAiPill();
-
-$("btnCreate").onclick=()=>socket.emit("create_room");
-$("btnJoin").onclick=()=>{ const code=($("room").value||"").trim().toUpperCase(); if(!code) return toast("Vul roomcode in"); socket.emit("join_room",{roomId:code,asFacilitator:true}); };
-$("btnStart").onclick=()=>roomId && socket.emit("start_game",{roomId});
-$("btnNewScenario").onclick=()=>roomId && socket.emit("new_scenario",{roomId});
-$("btnReset").onclick=()=>roomId && socket.emit("reset_room",{roomId});
-
-socket.on("room_created",({roomId:rid})=>{ $("room").value=rid; toast("Room: "+rid); });
-
-socket.on("joined",({roomId:rid})=>{
-  roomId=rid; $("roomPill").textContent="Room: "+rid; $("status").textContent="Verbonden";
-  ["btnStart","btnNewScenario","btnReset"].forEach(id=>$(id).disabled=false);
-  toast("Facilitator verbonden"); sendAiMode();
-});
-
-function renderTeams(s){
-  const wrap=$("teams"); wrap.innerHTML="";
-  ["G&O","Ecoresult","IkWilNietMeewerken","Beunhaas"].forEach(r=>{
-    const t=s.teams && s.teams[r]; const online=t && t.connected;
-    const name=t && t.name ? t.name : "— (vrij)";
-    const chosen=s.choices && s.choices[r] ? s.choices[r].choiceKey : "—";
-    const div=document.createElement("div"); div.className="team";
-    div.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
-      <div style="font-weight:950">${r}</div><span class="pill">${online?"🟢 online":"⚫ offline/vrij"}</span></div>
-      <div class="muted" style="margin-top:6px">Team: <b style="color:#fff">${name}</b></div>
-      <div class="muted">Keuze: <b style="color:#fff">${chosen}</b></div>`;
-    wrap.appendChild(div);
-  });
-}
-function renderLog(log){
-  const wrap=$("log"); wrap.innerHTML="";
-  (log||[]).slice().reverse().forEach(e=>{
-    const div=document.createElement("div"); div.className="entry";
-    div.innerHTML=`<div class="tag">📌 ${e.tag}</div><div>${e.msg}</div>
-    <div style="color:rgba(255,255,255,.6);font-size:11px;margin-top:6px">${new Date(e.ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>`;
-    wrap.appendChild(div);
-  });
-}
-function trustBar(role, val){
-  const cl = val < 0 ? "fill neg" : "fill";
-  // map -5..+5 to 0..100, center at 50
-  const pct = Math.max(0, Math.min(100, 50 + (val*10)));
-  return `<div class="bar">
-    <div class="barTop"><div style="font-weight:950">${role}</div><div class="pill">Trust: <b style="color:#fff">${val}</b></div></div>
-    <div class="track"><div class="${cl}" style="width:${pct}%"></div></div>
-  </div>`;
+function phaseLabel(p){
+  if(p==="lobby") return "Lobby";
+  if(p==="scenario") return "Scenario";
+  if(p==="reflection") return "Reflectie";
+  if(p==="done") return "Einde";
+  return p;
 }
 
-socket.on("room_state",(s)=>{
-  state=s;
-  $("score").textContent=s.score??0; $("risk").textContent=s.risk??0;
-  const t=s.trust||{};
-  $("trustTotal").textContent=(t["G&O"]||0)+(t["Ecoresult"]||0)+(t["IkWilNietMeewerken"]||0)+(t["Beunhaas"]||0);
-  $("roundNo").textContent = (s.roundIndex!=null) ? (s.round ? (s.roundIndex+1) : (s.roundIndex>=4? "Klaar":"—")) : "—";
+function setLinks(code){
+  const base = location.origin;
+  document.getElementById("displayLink").textContent = `${base}/display?room=${code}`;
+  document.getElementById("teamLink").textContent = `${base}/?room=${code}`;
+}
 
-  if(s.ai){
-    if(aiEnabled && !s.ai.hasKey){ aiEnabled=false; setToggle($("aiToggle"),aiEnabled); updateAiPill(); }
-    if(typeof s.ai.enabled==="boolean") aiEnabled=s.ai.enabled;
-    if(typeof s.ai.imagesEnabled==="boolean") imgEnabled=s.ai.imagesEnabled;
-    setToggle($("aiToggle"),aiEnabled); setToggle($("imgToggle"),imgEnabled); updateAiPill();
-    if(s.ai.lastError){ $("aiError").style.display="block"; $("aiError").textContent="AI melding: "+s.ai.lastError; }
-    else { $("aiError").style.display="none"; }
-  }
-
-  if(s.scenario){
-    $("scenarioText").textContent=`Gebouw: ${s.scenario.building.label} • Locatie: ${s.scenario.location} • Scope: ${s.scenario.scope} • Risico: ${s.scenario.risk.label} • ${s.scenario.constraint}`;
-  }
-  if(s.round){
-    $("roundText").textContent=`${s.round.title} — ${s.round.prompt}`;
-    $("imgPrompt").textContent="🖼️ Image prompt: " + (s.round.imagePrompt||"—");
-    const imgObj = (s.images && s.images[s.round.id]) ? s.images[s.round.id] : null;
-    if(imgObj && imgObj.url){
-      $("imgPanel").style.display="block";
-      $("roundImg").src = imgObj.url;
-      $("imgCap").textContent = "AI visual • " + (imgObj.prompt||"");
-    } else {
-      $("imgPanel").style.display="none";
-    }
-  } else {
-    $("roundText").textContent="— (nog niet gestart of klaar)";
-    $("imgPrompt").textContent="🖼️ Image prompt: —";
-    $("imgPanel").style.display="none";
-  }
-
-  const bars = document.getElementById("trustBars");
-  bars.innerHTML = trustBar("G&O", t["G&O"]||0) + trustBar("Ecoresult", t["Ecoresult"]||0) + trustBar("IkWilNietMeewerken", t["IkWilNietMeewerken"]||0) + trustBar("Beunhaas", t["Beunhaas"]||0);
-
-  renderTeams(s); renderLog(s.log);
-});
-
-$("btnCopy").onclick=async()=>{
-  if(!state) return;
-  const lines=[];
-  lines.push(`Operatie Oude Eik – Room ${state.roomId}`);
-  lines.push(`Score: ${state.score} | Risico: ${state.risk}`);
-  lines.push("");
-  (state.log||[]).forEach(e=>{
-    lines.push(`[${new Date(e.ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}] ${e.tag}: ${String(e.msg).replace(/<[^>]*>/g,'')}`);
-  });
-  await navigator.clipboard.writeText(lines.join("\n"));
-  toast("Log gekopieerd");
+document.getElementById("createBtn").onclick = ()=> socket.emit("create_room");
+document.getElementById("joinBtn").onclick = ()=>{
+  const code = (document.getElementById("joinInput").value||"").trim().toUpperCase();
+  if(!code){ document.getElementById("err").textContent = "Vul een roomcode in."; return; }
+  roomId = code;
+  socket.emit("join_room", { roomId, mode: "facilitator" });
 };
 
-socket.on("error_msg",(m)=>toast(m));
+document.getElementById("startBtn").onclick = ()=> {
+  if(!roomId) return;
+  socket.emit("start_game", { roomId });
+};
+document.getElementById("nextBtn").onclick = ()=> {
+  if(!roomId) return;
+  socket.emit("next", { roomId });
+};
+document.getElementById("forceTransBtn").onclick = ()=> {
+  if(!roomId) return;
+  socket.emit("force_transparency", { roomId });
+};
+document.getElementById("resetBtn").onclick = ()=> {
+  if(!roomId) return;
+  if(confirm("Zeker weten? Dit reset de room.")){
+    socket.emit("reset_room", { roomId });
+  }
+};
+
+function download(filename, content, mime){
+  const blob = new Blob([content], {type: mime || "application/octet-stream"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+async function fetchReport(){
+  if(!roomId || !token) throw new Error("Missing roomId/token");
+  const res = await fetch(`/api/report?roomId=${encodeURIComponent(roomId)}&token=${encodeURIComponent(token)}`);
+  if(!res.ok) throw new Error("Report ophalen mislukt.");
+  return res.json();
+}
+
+document.getElementById("downloadJsonBtn").onclick = async ()=>{
+  try{
+    const data = await fetchReport();
+    download(`Operatie_Oude_Eik_Report_${roomId}.json`, JSON.stringify(data,null,2), "application/json");
+  }catch(e){ document.getElementById("err").textContent = e.message; }
+};
+
+document.getElementById("downloadHtmlBtn").onclick = async ()=>{
+  try{
+    const data = await fetchReport();
+    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Report ${roomId}</title>
+      <style>body{font-family:Arial,system-ui;max-width:900px;margin:20px auto;line-height:1.4}
+      h1{margin:0 0 6px} .muted{color:#555} pre{background:#f4f4f4;padding:12px;border-radius:10px;overflow:auto}
+      .card{border:1px solid #ddd;border-radius:12px;padding:12px;margin:12px 0}</style></head><body>
+      <h1>Operatie Oude Eik – Rapport</h1>
+      <div class="muted">Room: <b>${roomId}</b> · Created: ${data.createdAt}</div>
+
+      <div class="card"><h2>Reflecties</h2>
+        ${data.reflections.length ? data.reflections.map(r=>`<p><b>${r.scenarioId}</b> · <b>${r.role}</b><br/>${escapeHtml(r.text||"")}</p>`).join("") : "<p class='muted'>Geen reflecties.</p>"}
+      </div>
+
+      <div class="card"><h2>Log</h2><pre>${escapeHtml(JSON.stringify(data.log,null,2))}</pre></div>
+      </body></html>`;
+    download(`Operatie_Oude_Eik_Report_${roomId}.html`, html, "text/html");
+  }catch(e){ document.getElementById("err").textContent = e.message; }
+};
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+}
+
+function render(state){
+  document.getElementById("phaseTxt").textContent = phaseLabel(state.phase);
+  document.getElementById("phaseDot").className = dotClass(state.phase==="scenario"?"orange":(state.phase==="reflection"?"green":""));
+
+  if(state.roomId){
+    roomId = state.roomId;
+    document.getElementById("roomCode").textContent = roomId;
+    setLinks(roomId);
+  }
+  document.getElementById("reflCount").textContent = String(state.facilitator?.reflectionsCount || 0);
+
+  // team grid
+  const grid = document.getElementById("teamGrid");
+  grid.innerHTML = "";
+  ["G&O","Ecoresult","IkWilNietMeewerken","Beunhaas"].forEach(r=>{
+    const t = state.teams?.[r];
+    const chosen = state.choices?.[r]?.choiceKey;
+    const el = document.createElement("div");
+    el.className = "pill";
+    const d = document.createElement("span");
+    d.className = "dot";
+    if(state.phase==="scenario"){
+      d.className = chosen ? "dot green" : (t?.connected ? "dot orange" : "dot");
+    }
+    if(state.phase==="reflection") d.className = "dot green";
+    const txt = document.createElement("span");
+    txt.textContent = `${r}: ${t?.connected ? (chosen ? "Keuze binnen" : "Wacht") : "Niet verbonden"}`;
+    el.appendChild(d); el.appendChild(txt);
+    grid.appendChild(el);
+  });
+
+  // log
+  const logEl = document.getElementById("log");
+  logEl.innerHTML = (state.log||[]).slice(-80).map(x=>{
+    const dt = new Date(x.ts||Date.now());
+    return `<div><span class="muted">${dt.toLocaleTimeString()} · ${x.tag}</span> — ${escapeHtml(x.msg||"")}</div>`;
+  }).join("");
+}
+
+socket.on("room_created", ({roomId})=>{
+  document.getElementById("joinInput").value = roomId;
+  document.getElementById("joinBtn").click();
+});
+
+socket.on("facilitator_token", ({token: t})=>{
+  token = t;
+  localStorage.setItem("fac_token", token);
+});
+
+socket.on("room_state_fac", render);
+socket.on("error_msg", (m)=> document.getElementById("err").textContent = m);
+
+// Auto-join via URL ?room=
+const pre = (qs("room")||"").toUpperCase();
+if(pre){
+  document.getElementById("joinInput").value = pre;
+}
 </script>
-</body></html>
+</body>
+</html>

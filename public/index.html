@@ -1,177 +1,286 @@
 <!doctype html>
-<html lang="nl"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Operatie Oude Eik – Speler (v4.1)</title>
-<script src="/socket.io/socket.io.js"></script>
-<link rel="stylesheet" href="/theme.css"/>
-<style>
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--ink)}
-header{padding:18px 16px;border-bottom:1px solid var(--border);background:linear-gradient(135deg, rgba(90,45,255,.08), rgba(26,163,122,.07));}
-.wrap{max-width:1120px;margin:0 auto;padding:16px}
-h1{margin:0;font-size:18px}
-.sub{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.4}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-input{padding:12px;border-radius:14px;border:1px solid var(--border);outline:none;font-size:14px;background:#fff}
-button{padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:#fff;font-weight:900;cursor:pointer}
-button:hover{border-color:#cfd6ea}
-.pill{display:inline-flex;gap:8px;align-items:center;padding:7px 10px;border-radius:999px;border:1px solid var(--border);font-size:12px;color:var(--muted);background:#fff}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:900px){.grid{grid-template-columns:1fr}}
-.roles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-@media(max-width:720px){.roles{grid-template-columns:1fr}}
-.role{border:1px solid var(--border);border-radius:18px;padding:12px;cursor:pointer;background:#fff;display:flex;gap:12px;align-items:flex-start;transition:.12s}
-.role:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:#d4dcf2}
-.role .name{display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:950}
-.role .desc{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.35}
-.avatarBox{width:54px;height:54px;border-radius:18px;border:1px solid var(--border);background:linear-gradient(135deg, rgba(90,45,255,.08), rgba(26,163,122,.06));display:grid;place-items:center;overflow:hidden}
-.avatarBox img{width:40px;height:40px}
-.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
-@media(max-width:720px){.choices{grid-template-columns:1fr}}
-.opt{border:1px solid var(--border);border-radius:18px;padding:12px;background:#fff;cursor:pointer;transition:.12s}
-.opt:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:#d4dcf2}
-.opt .k{font-weight:950}
-.opt .s{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.35}
-.hero{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.heroLeft{display:flex;gap:12px;align-items:center}
-.heroIcon{width:44px;height:44px;border-radius:16px;background:linear-gradient(135deg, rgba(90,45,255,.92), rgba(26,163,122,.86));box-shadow:var(--shadow);display:grid;place-items:center;color:#fff;font-weight:950}
-.imgWrap{margin-top:12px;border:1px solid var(--border);border-radius:18px;overflow:hidden;background:#fff}
-.imgWrap img{width:100%;display:block}
-.smallcap{padding:10px 12px;color:var(--muted);font-size:12px;line-height:1.35;border-top:1px solid var(--border)}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:#111827;color:#fff;padding:10px 12px;border-radius:12px;opacity:0;transition:.2s;pointer-events:none}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
-</style></head>
-<body class="bgPattern">
-<header>
-  <div class="wrap">
-    <div class="hero">
-      <div class="heroLeft">
-        <div class="heroIcon">OE</div>
-        <div>
-          <h1>Operatie Oude Eik – Multiplayer</h1>
-          <div class="sub">Join met roomcode, kies je rol, en maak per ronde één A/B/C keuze. Facilitator zit op <b>/facilitator</b>.</div>
-        </div>
-      </div>
-      <div class="brandBar" style="min-width:340px">
-        <div class="left">
-          <img src="/assets/logo_go.svg" alt="G&O" height="34"/>
-          <img src="/assets/logo_eco.svg" alt="Ecoresult" height="34"/>
-        </div>
-        <span class="badge">⚡ Innovatie</span>
-      </div>
-    </div>
-  </div>
-</header>
-
+<html lang="nl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Operatie Oude Eik – Team</title>
+  <link rel="stylesheet" href="/theme.css"/>
+  <style>
+    .wrap{max-width:980px;margin:0 auto;padding:22px}
+    .row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .pill{display:inline-flex;align-items:center;gap:10px;border-radius:999px;padding:8px 12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);font-weight:700}
+    .dot{width:10px;height:10px;border-radius:999px;background:#999}
+    .dot.green{background:#38a169}.dot.orange{background:#dd6b20}.dot.red{background:#e53e3e}
+    .timer{font-size:26px;font-weight:900}
+    .panel{margin-top:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:16px}
+    .title{font-size:28px;font-weight:900;margin:6px 0 10px}
+    .narr{white-space:pre-wrap;font-size:16px;line-height:1.45}
+    .roles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
+    .roleCard{padding:14px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.14);cursor:pointer;transition:.12s}
+    .roleCard:hover{transform:translateY(-1px);background:rgba(0,0,0,.20)}
+    .roleName{font-size:18px;font-weight:900}
+    .small{opacity:.85;font-size:13px;margin-top:6px}
+    .bigRole{font-size:16px;font-weight:900;opacity:.9}
+    .position{margin-top:10px;padding:12px;border-radius:16px;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.10);white-space:pre-wrap}
+    .secret{margin-top:10px;padding:12px;border-radius:16px;background:rgba(90,56,164,.18);border:1px solid rgba(160,130,255,.25)}
+    .secret b{display:block;margin-bottom:6px}
+    .question{margin-top:14px;font-size:22px;font-weight:900}
+    .options{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px}
+    .optBtn{text-align:left;padding:14px;border-radius:18px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);cursor:pointer}
+    .optBtn:hover{background:rgba(255,255,255,.10)}
+    .optKey{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.12);font-weight:900;margin-right:10px}
+    .optTitle{font-weight:900;font-size:18px}
+    .optDesc{opacity:.85;margin-top:6px;line-height:1.35}
+    .muted{opacity:.85}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .btn{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);cursor:pointer;font-weight:800}
+    .btn.primary{background:rgba(72,187,120,.22);border-color:rgba(72,187,120,.35)}
+    .btn.danger{background:rgba(229,62,62,.18);border-color:rgba(229,62,62,.30)}
+    .hide{display:none !important}
+    textarea{width:100%;min-height:110px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);color:#fff;padding:12px;font-size:15px}
+    input{border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);color:#fff;padding:10px 12px}
+  </style>
+</head>
+<body>
 <div class="wrap">
-  <div class="card" style="padding:14px;margin-bottom:12px">
-    <div class="row">
-      <input id="room" placeholder="Roomcode (bijv. A7K3P)" style="width:180px;text-transform:uppercase"/>
-      <button id="join" class="btnPrimary">Join</button>
-      <input id="team" placeholder="Teamnaam (bijv. Team Noord)" style="flex:1;min-width:240px"/>
+  <div class="row">
+    <div style="display:flex;align-items:center;gap:10px">
+      <img src="/assets/logo_go.svg" alt="G&O" style="height:28px"/>
+      <span class="muted">×</span>
+      <img src="/assets/logo_eco.svg" alt="Ecoresult" style="height:28px"/>
     </div>
-    <div class="row" style="margin-top:10px">
-      <span class="pill" id="roomPill">Room: —</span>
-      <span class="pill">Rol: <b id="rolePill">—</b></span>
-      <span class="pill">Score: <b id="score">0</b></span>
-      <span class="pill">Risico: <b id="risk">0</b></span>
+    <div class="pill"><span class="dot" id="phaseDot"></span><span id="phaseTxt">Lobby</span></div>
+    <div class="timer" id="timer">--:--</div>
+  </div>
+
+  <!-- Join -->
+  <div class="panel" id="joinPanel">
+    <div class="title">Doe mee</div>
+    <div class="muted">Vul de roomcode in (van het grote scherm/facilitator).</div>
+    <div class="actions">
+      <input id="roomInput" placeholder="Roomcode (bijv. A7K9P)" maxlength="5" style="text-transform:uppercase"/>
+      <input id="teamInput" placeholder="Teamnaam (bijv. Team 1)" maxlength="24"/>
+      <button class="btn primary" id="joinBtn">Join</button>
+    </div>
+    <div class="muted" style="margin-top:10px">Na het kiezen van je rol zie je jouw positie, geheime doel en keuzes groot in beeld.</div>
+    <div id="err" class="muted" style="margin-top:10px;color:#ffbdbd"></div>
+  </div>
+
+  <!-- Role select -->
+  <div class="panel hide" id="rolePanel">
+    <div class="title">Kies je rol</div>
+    <div class="roles" id="roles"></div>
+  </div>
+
+  <!-- Game (after role chosen) -->
+  <div class="panel hide" id="gamePanel">
+    <div class="bigRole" id="myRole"></div>
+    <div class="title" id="scenarioTitle">Wachten op start…</div>
+    <div class="narr" id="scenarioNarr">Zodra de facilitator start, verschijnt hier de casus.</div>
+
+    <div class="position" id="myPosition"></div>
+    <div class="secret" id="mySecret"><b>🔒 Verborgen individueel doel</b><span id="mySecretTxt"></span></div>
+
+    <div class="question" id="question">Wat doe je?</div>
+    <div class="options" id="options"></div>
+
+    <div class="actions">
+      <button class="btn danger" id="transparencyBtn">Transparantie</button>
+      <div class="muted" id="waitMsg"></div>
     </div>
   </div>
 
-  <div class="grid">
-    <div class="card" style="padding:14px">
-      <div style="font-weight:950;margin-bottom:10px">1) Kies je rol</div>
-      <div class="roles" id="roles"></div>
-      <div class="sub" style="margin-top:10px">Tip: spreek af wie welke rol pakt. Je teamnaam verschijnt bij de facilitator.</div>
-    </div>
-
-    <div class="card" id="roundCard" style="padding:14px;display:none">
-      <div style="font-weight:950" id="roundTitle">—</div>
-      <div class="sub" id="roundPrompt">—</div>
-
-      <div class="imgWrap" id="imgBox" style="display:none">
-        <img id="roundImg" alt="Ronde visual"/>
-        <div class="smallcap" id="imgCap">—</div>
+  <!-- Reflection -->
+  <div class="panel hide" id="reflectionPanel">
+    <div class="title">Reflectie (I-GO – vertrouwelijk)</div>
+    <div style="font-size:18px;font-weight:900;margin-bottom:8px;">Wat hebben jullie in deze ronde geleerd?</div>
+    <div class="muted">Jullie input wordt alleen zichtbaar voor de facilitator en kan worden meegenomen in verdere procesverbetering.</div>
+    <div style="margin-top:10px">
+      <textarea id="reflText" maxlength="250" placeholder="Typ 1 kerninzicht vanuit jullie rol (max 250 tekens)"></textarea>
+      <div class="actions">
+        <button class="btn primary" id="sendReflBtn">Verstuur reflectie</button>
+        <div class="muted" id="reflStatus"></div>
       </div>
-
-      <div style="font-weight:950;margin-top:12px">2) Kies A / B / C</div>
-      <div class="choices" id="choices"></div>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<script src="/socket.io/socket.io.js"></script>
 <script>
-const socket=io(); const $=(id)=>document.getElementById(id);
-let roomId=null, role=null, state=null;
-const meta={
- "G&O":{m:"/assets/mascot_go.svg",desc:"Opdrachtgever: scope, planning, bewoners, budget."},
- "Ecoresult":{m:"/assets/mascot_eco.svg",desc:"Adviesbureau: onderzoek, vergunning, mitigatie."},
- "IkWilNietMeewerken":{m:"/assets/mascot_gov.svg",desc:"Bevoegd gezag: eisen, termijnen, volledigheid."},
- "Beunhaas":{m:"/assets/mascot_con.svg",desc:"Aannemer: uitvoering, startdatum, capaciteit."}
-};
-function toast(m){const t=$("toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1400);}
-$("join").onclick=()=>{const code=($("room").value||"").trim().toUpperCase(); if(!code) return toast("Vul roomcode in"); socket.emit("join_room",{roomId:code,asFacilitator:false});};
-socket.on("joined",({roomId:rid})=>{roomId=rid; $("roomPill").textContent="Room: "+rid; toast("Verbonden");});
-function renderRoles(){
- const wrap=$("roles"); wrap.innerHTML="";
- ["G&O","Ecoresult","IkWilNietMeewerken","Beunhaas"].forEach(r=>{
-   const div=document.createElement("div"); div.className="role";
-   const taken=state && state.teams && state.teams[r] && state.teams[r].connected;
-   div.innerHTML=`
-     <div class="avatarBox"><img src="${meta[r].m}" alt="${r}"/></div>
-     <div style="flex:1">
-       <div class="name"><span>${r}</span><span class="pill">${taken?"Bezet":"Vrij"}</span></div>
-       <div class="desc">${meta[r].desc}</div>
-     </div>`;
-   div.onclick=()=>{
-     if(!roomId) return toast("Join eerst");
-     const tn=($("team").value||"").trim()||r;
-     socket.emit("claim_role",{roomId,roleKey:r,teamName:tn});
-     role=r; $("rolePill").textContent=r;
-     toast("Rol: "+r);
-   };
-   wrap.appendChild(div);
- });
+const socket = io();
+const ROLES = [
+  {key:"G&O", label:"Woningcorporatie (G&O)", desc:"Planning, budget, bewonersdraagvlak"},
+  {key:"Ecoresult", label:"Ecoresult (adviesbureau)", desc:"Juridische houdbaarheid & ecologische zorgvuldigheid"},
+  {key:"IkWilNietMeewerken", label:"Bevoegd gezag", desc:"Wetgeving, precedent, besluitvorming"},
+  {key:"Beunhaas", label:"Aannemer", desc:"Uitvoerbaarheid, capaciteit, faalkosten"}
+];
+
+let roomId = "";
+let teamName = "";
+let myRole = "";
+let myChoiceLocked = false;
+
+function mmss(sec){
+  const m = Math.floor(sec/60);
+  const s = sec%60;
+  return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
 }
-function submitChoice(k){ if(!roomId||!role) return toast("Kies eerst je rol"); socket.emit("submit_choice",{roomId,roleKey:role,choiceKey:k}); toast("Keuze: "+k); }
+function phaseLabel(p){
+  if(p==="lobby") return "Lobby";
+  if(p==="scenario") return "Scenario";
+  if(p==="reflection") return "Reflectie";
+  if(p==="done") return "Einde";
+  return p;
+}
+function dotClass(color){
+  if(color==="green") return "dot green";
+  if(color==="orange") return "dot orange";
+  if(color==="red") return "dot red";
+  return "dot";
+}
 
-socket.on("room_state",(s)=>{
- state=s; $("score").textContent=s.score??0; $("risk").textContent=s.risk??0; renderRoles();
- const rc=$("roundCard");
- if(s.round){
-   rc.style.display="block";
-   $("roundTitle").textContent=s.round.title;
-   $("roundPrompt").textContent=s.round.prompt;
+function show(id){ document.getElementById(id).classList.remove("hide"); }
+function hide(id){ document.getElementById(id).classList.add("hide"); }
 
-   const imgObj = (s.images && s.images[s.round.id]) ? s.images[s.round.id] : null;
-   if(imgObj && imgObj.url){
-     $("imgBox").style.display="block";
-     $("roundImg").src = imgObj.url;
-     $("imgCap").textContent = "Visual (AI) – " + (imgObj.prompt || "");
-   } else {
-     $("imgBox").style.display="none";
-   }
+function renderRoles(){
+  const el = document.getElementById("roles");
+  el.innerHTML = "";
+  ROLES.forEach(r=>{
+    const c = document.createElement("div");
+    c.className = "roleCard";
+    c.innerHTML = `<div class="roleName">${r.label}</div><div class="small">${r.desc}</div>`;
+    c.onclick = ()=> claimRole(r.key);
+    el.appendChild(c);
+  });
+}
+renderRoles();
 
-   const ch=$("choices"); ch.innerHTML="";
-   if(role && s.round.options && s.round.options[role]){
-     s.round.options[role].forEach(opt=>{
-       const [k,name,desc]=opt;
-       const d=document.createElement("div"); d.className="opt";
-       d.innerHTML=`<div class="k">${k}. ${name}</div><div class="s">${desc}</div>`;
-       d.onclick=()=>submitChoice(k);
-       ch.appendChild(d);
-     });
-   } else {
-     ch.innerHTML='<div class="pill">Kies eerst een rol om opties te zien.</div>';
-   }
- } else {
-   rc.style.display="block";
-   $("roundTitle").textContent="Wachten op facilitator…";
-   $("roundPrompt").textContent="De game is nog niet gestart of is afgerond.";
-   $("choices").innerHTML="";
-   $("imgBox").style.display="none";
- }
+function join(){
+  roomId = (document.getElementById("roomInput").value||"").trim().toUpperCase();
+  teamName = (document.getElementById("teamInput").value||"").trim() || "Team";
+  if(!roomId){ document.getElementById("err").textContent = "Vul een roomcode in."; return; }
+  socket.emit("join_room", { roomId, mode: "player" });
+}
+document.getElementById("joinBtn").onclick = join;
+
+function claimRole(roleKey){
+  myRole = roleKey;
+  socket.emit("claim_role", { roomId, roleKey, teamName });
+  // lock UI immediately
+  hide("rolePanel"); show("gamePanel");
+  document.getElementById("myRole").textContent = "Jouw rol: " + roleKey;
+  myChoiceLocked = false;
+}
+
+function setPhase(state){
+  document.getElementById("phaseTxt").textContent = phaseLabel(state.phase);
+  document.getElementById("phaseDot").className = dotClass(state.phase==="scenario" ? "orange" : (state.phase==="reflection" ? "green" : ""));
+  document.getElementById("timer").textContent = state.phase==="lobby" ? "--:--" : mmss(state.remaining||0);
+
+  if(state.phase === "reflection"){
+    show("reflectionPanel");
+  } else {
+    hide("reflectionPanel");
+    document.getElementById("reflStatus").textContent = "";
+  }
+}
+
+function renderRoleState(state){
+  setPhase(state);
+
+  if(state.phase === "lobby"){
+    hide("joinPanel"); show("rolePanel");
+    // if role already chosen -> show gamePanel
+    if(myRole){ hide("rolePanel"); show("gamePanel"); }
+    return;
+  }
+
+  if(state.phase === "scenario"){
+    hide("joinPanel"); hide("rolePanel"); show("gamePanel");
+    document.getElementById("scenarioTitle").textContent = state.scenario?.title || "Scenario";
+    document.getElementById("scenarioNarr").textContent = state.scenario?.narrative || "";
+    document.getElementById("myPosition").textContent = "Jouw positie:\n" + (state.my?.position || "");
+    document.getElementById("mySecretTxt").textContent = state.my?.secretGoal || "";
+
+    // options
+    const opts = state.my?.options || [];
+    const oel = document.getElementById("options");
+    oel.innerHTML = "";
+    const already = state.choices?.[myRole]?.choiceKey;
+    myChoiceLocked = Boolean(already);
+
+    opts.forEach(o=>{
+      const [key,title,desc] = o;
+      const b = document.createElement("button");
+      b.className = "optBtn";
+      b.innerHTML = `<div style="display:flex;gap:10px;align-items:flex-start">
+        <div class="optKey">${key}</div>
+        <div>
+          <div class="optTitle">${title}</div>
+          <div class="optDesc">${desc}</div>
+        </div>
+      </div>`;
+      b.disabled = myChoiceLocked;
+      b.onclick = ()=>{
+        if(myChoiceLocked) return;
+        socket.emit("submit_choice", { roomId, roleKey: myRole, choiceKey: key });
+        myChoiceLocked = true;
+        document.getElementById("waitMsg").textContent = "✅ Keuze verzonden. Wachten op andere teams…";
+        // disable all
+        [...document.querySelectorAll(".optBtn")].forEach(x=>x.disabled=true);
+      };
+      oel.appendChild(b);
+    });
+
+    if(myChoiceLocked){
+      document.getElementById("waitMsg").textContent = "✅ Keuze verzonden. Wachten op andere teams…";
+      [...document.querySelectorAll(".optBtn")].forEach(x=>x.disabled=true);
+    } else {
+      document.getElementById("waitMsg").textContent = "";
+    }
+  }
+
+  if(state.phase === "reflection"){
+    hide("gamePanel"); show("reflectionPanel");
+  }
+
+  if(state.phase === "done"){
+    hide("gamePanel"); hide("reflectionPanel");
+    show("joinPanel");
+    document.getElementById("err").textContent = "Spel is afgelopen. Vraag facilitator om reset of nieuw room.";
+  }
+}
+
+document.getElementById("transparencyBtn").onclick = ()=>{
+  if(!myRole) return;
+  socket.emit("request_transparency", { roomId, roleKey: myRole });
+  document.getElementById("waitMsg").textContent = "🟣 Transparantie aangevraagd. Als 2 teams dit doen, verschijnt advies op het grote scherm.";
+};
+
+document.getElementById("sendReflBtn").onclick = ()=>{
+  const t = (document.getElementById("reflText").value||"").trim();
+  if(!t){ document.getElementById("reflStatus").textContent = "Schrijf één korte zin."; return; }
+  socket.emit("submit_reflection", { roomId, roleKey: myRole, text: t });
+  document.getElementById("reflStatus").textContent = "✅ Reflectie opgeslagen (alleen zichtbaar voor facilitator).";
+  document.getElementById("sendReflBtn").disabled = true;
+  document.getElementById("reflText").disabled = true;
+};
+
+socket.on("error_msg", (m)=>{ document.getElementById("err").textContent = m; });
+
+socket.on("joined", ()=>{
+  hide("joinPanel"); show("rolePanel");
 });
-socket.on("error_msg",(m)=>toast(m));
+
+socket.on("room_state_role", renderRoleState);
+socket.on("room_state", (state)=>{ setPhase(state); }); // fallback
+
+// Auto-join via URL ?room=XXXXX
+function qs(k){ return new URLSearchParams(location.search).get(k); }
+const pre = (qs("room")||"").toUpperCase();
+if(pre){
+  document.getElementById("roomInput").value = pre;
+}
 </script>
-</body></html>
+</body>
+</html>

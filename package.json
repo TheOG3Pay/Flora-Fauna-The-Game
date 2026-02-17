@@ -1,6 +1,6 @@
 {
-  "name": "operatie-oude-eik-multiplayer-v4-1",
-  "version": "4.1.0",
+  "name": "operatie-oude-eik-multiplayer-v5",
+  "version": "5.0.0",
   "private": true,
   "main": "server.js",
   "scripts": {

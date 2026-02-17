@@ -6,592 +6,656 @@ const { Server } = require("socket.io");
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
+
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.static(path.join(__dirname, "public")));
-app.get("/facilitator", (req,res)=> res.sendFile(path.join(__dirname,"public","facilitator.html")));
+app.get("/facilitator", (req, res) => res.sendFile(path.join(__dirname, "public", "facilitator.html")));
+app.get("/display", (req, res) => res.sendFile(path.join(__dirname, "public", "display.html")));
 
 const PORT = process.env.PORT || 3000;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 
-// Minimal config endpoint for UI
-app.get("/api/config", (req,res)=>{
-  res.json({ hasOpenAIKey: Boolean(OPENAI_API_KEY) });
-});
-
-/* ----------------------- Game Core ----------------------- */
+/* ----------------------- Game Model ----------------------- */
 const ROLES = ["G&O", "Ecoresult", "IkWilNietMeewerken", "Beunhaas"];
 
-function now() { return new Date().toISOString(); }
-function randCode(){
+function randCode() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   let code = "";
-  for(let i=0;i<5;i++) code += chars[Math.floor(Math.random()*chars.length)];
+  for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
 }
+
+function nowIso() { return new Date().toISOString(); }
+
+function makeScenarios() {
+  return [
+    {
+      id: "S1",
+      title: "Scenario 1 – De Start van het Project",
+      narrative:
+`G&O start een planmatig onderhoudsproject voor 92 portiekwoningen uit 1964.
+
+Werkzaamheden:
+• Dakrenovatie
+• Gevelisolatie
+• Vervangen kozijnen
+• Installatieverbetering
+
+De woningen liggen in een groene wijk met volwassen bomen en water in de buurt.
+Ambitie: binnen 18 maanden starten met uitvoering.
+Er is nog geen Flora & Fauna onderzoek uitgevoerd.`,
+      positions: {
+        "G&O":
+`Jullie zitten op een strak budget en de verduurzaming is bestuurlijk aangekondigd.
+Vertraging boven 3 maanden is politiek gevoelig. Bewoners verwachten duidelijkheid.`,
+        "Ecoresult":
+`Jullie moeten een juridisch houdbare lijn kiezen, maar de scope is nog niet volledig concreet.
+Onvolledige informatie = hoger juridisch risico.`,
+        "IkWilNietMeewerken":
+`Jullie willen zorgvuldig handelen. Provincie kijkt mee op naleving.
+Precedentwerking en volledigheid wegen zwaar.`,
+        "Beunhaas":
+`Jullie moeten capaciteit 12 maanden vooruit plannen.
+Onzekerheid betekent financieel risico en herplanning.`
+      },
+      options: {
+        "G&O": [
+          ["A","Start direct met quickscan (globale scope)","Snel starten met een eerste risico-inschatting. Scope is nog grof."],
+          ["B","Wacht op volledige technische uitwerking","Eerst alles uitwerken voordat ecologie start. Minder ruis, later start."],
+          ["C","Beperk scope in quickscan tot dak","Sneller en goedkoper, maar risico op verrassingen later."]
+        ],
+        "Ecoresult": [
+          ["A","Worst-case benadering","Conservatief: extra voorzichtig, kans op langere doorlooptijd."],
+          ["B","Gefaseerde quickscan met voorbehoud","Start nu, maar expliciet: scope kan bijgesteld worden."],
+          ["C","Wachten tot scope ‘100%’ is","Pas starten bij volledige informatie. Hoog risico op planningissues."]
+        ],
+        "IkWilNietMeewerken": [
+          ["A","Vooroverleg aanbieden","Meedenken aan de voorkant om later vertraging te beperken."],
+          ["B","Volledige onderbouwing eisen","Strak op volledigheid. Veilig, maar kan vertragen."],
+          ["C","Afwachtend (formeel pas bij aanvraag)","Geen capaciteit nu. Reageert later op de formele aanvraag."]
+        ],
+        "Beunhaas": [
+          ["A","Capaciteit voorlopig reserveren","Reserveren met ‘escape’ als er vertraging komt."],
+          ["B","Wachten tot vergunning rond is","Zekerheid, maar kans dat je plek in planning kwijt raakt."],
+          ["C","Andere projecten prioriteren","Zet dit project op de tweede plek. Minder flexibiliteit later."]
+        ]
+      },
+      eval: {
+        green: { "G&O":"A", "Ecoresult":"B", "IkWilNietMeewerken":"A", "Beunhaas":"A" },
+        orange: {
+          "G&O":["C"], "Ecoresult":["A"], "IkWilNietMeewerken":["B"], "Beunhaas":["B"]
+        },
+        red: {
+          "G&O":["B"], "Ecoresult":["C"], "IkWilNietMeewerken":["C"], "Beunhaas":["C"]
+        }
+      },
+      suggestions: [
+        "Laat Ecoresult starten met een gefaseerde quickscan mét duidelijke scope-voorbehouden (geen ‘wachten tot alles af is’).",
+        "Plan direct een kort vooroverleg met bevoegd gezag om verwachtingen te managen.",
+        "Reserveer aannemerscapaciteit voorlopig, maar bouw flexibiliteit in (geen harde startdatum beloven)."
+      ]
+    },
+    {
+      id: "S2",
+      title: "Scenario 2 – De Vondst",
+      narrative:
+`Tijdens inspectie worden aanwijzingen van vleermuisactiviteit gevonden in meerdere spouwmuren.
+Het broedseizoen start over 4 weken.
+
+De planning was om over 6 maanden te starten met uitvoering.
+Als het seizoen-venster wordt gemist, kan dat 6–12 maanden vertraging betekenen.`,
+      positions: {
+        "G&O":
+`Startdatum is al ‘soft’ genoemd richting bewoners. Te veel vertraging schaadt draagvlak.
+Jullie moeten kiezen: snelheid, fasering of extra onderzoek.`,
+        "Ecoresult":
+`De vondst vergroot de juridische druk. Seizoensgebonden onderzoek kan noodzakelijk zijn.
+Onzorgvuldigheid kan leiden tot afwijzing of handhaving.`,
+        "IkWilNietMeewerken":
+`Natuur ligt gevoelig in de gemeente. Media en politiek kijken mee.
+Jullie willen zorgvuldig én uitlegbaar handelen.`,
+        "Beunhaas":
+`Materieel en mensen zijn ingepland. Stilstand kost geld.
+Jullie willen door met werk, liefst gefaseerd.`
+      },
+      options: {
+        "G&O": [
+          ["A","Direct volledig nader onderzoek starten","Zekerheid, maar kans op forse vertraging."],
+          ["B","Mitigatie voorbereiden parallel aan onderzoek","Tijd winnen, maar vraagt strakke afstemming."],
+          ["C","Gefaseerd uitvoeren: eerst ‘schone’ delen","Beperkt stilstand, maar complexer in uitvoering."]
+        ],
+        "Ecoresult": [
+          ["A","Volledig seizoensonderzoek eisen","Maximaal zorgvuldig, grootste planning-impact."],
+          ["B","Gefaseerd onderzoek + mitigatie combineren","Praktisch compromis: zorgvuldig én tempo."],
+          ["C","Alleen noodmaatregel adviseren","Snel, maar juridisch kwetsbaar als het niet klopt."]
+        ],
+        "IkWilNietMeewerken": [
+          ["A","Strikte naleving: onderzoek eerst","Veilig, maar kan politieke druk opleveren door vertraging."],
+          ["B","Versnellen via vooroverleg en duidelijke voorwaarden","Samen naar een houdbare, snellere route."],
+          ["C","Tijdelijke ruimte geven zonder harde onderbouwing","Snel, maar hoog risico op precedent/bezwaar."]
+        ],
+        "Beunhaas": [
+          ["A","Startdatum verschuiven en wachten","Rust, maar duur."],
+          ["B","Deelproject starten op laag-risico onderdelen","Beperkt stilstand, blijft flexibel."],
+          ["C","Druk zetten om ‘gewoon te beginnen’","Snel, maar verhoogt conflict en juridisch risico."]
+        ]
+      },
+      eval: {
+        green: { "G&O":"C", "Ecoresult":"B", "IkWilNietMeewerken":"B", "Beunhaas":"B" },
+        orange: {
+          "G&O":["B"], "Ecoresult":["A"], "IkWilNietMeewerken":["A"], "Beunhaas":["A"]
+        },
+        red: {
+          "G&O":["A"], "Ecoresult":["C"], "IkWilNietMeewerken":["C"], "Beunhaas":["C"]
+        }
+      },
+      suggestions: [
+        "Kies voor fasering: start met laag-risico onderdelen terwijl onderzoek/mitigatie loopt.",
+        "Maak met bevoegd gezag vooraf duidelijke voorwaarden: wat moet minimaal rond zijn vóór start?",
+        "Vermijd ‘noodmaatregelen’ zonder onderbouwing; dat wordt snel juridisch kwetsbaar."
+      ]
+    },
+    {
+      id: "S3",
+      title: "Scenario 3 – Vergunning onder Druk",
+      narrative:
+`Bevoegd gezag vraagt aanvullende onderbouwing in de vergunningaanvraag.
+De aannemer heeft startdatum ingepland en er is al extern gecommuniceerd over de verduurzaming.
+
+De keuze is nu: extra onderzoek, voorwaardelijke vergunning, of opschorten.
+Elke stap heeft impact op planning, geld én vertrouwen.`,
+      positions: {
+        "G&O":
+`Reputatie is kwetsbaar: beloftes richting bewoners en bestuur.
+Jullie moeten laten zien dat je ‘in control’ bent zonder de juridische basis te verliezen.`,
+        "Ecoresult":
+`De onderbouwing moet robuust zijn. Als het wankel is, valt het later om (bezwaar/handhaving).
+Jullie willen kwaliteit leveren én tempo houden.`,
+        "IkWilNietMeewerken":
+`Een besluit moet verdedigbaar zijn. Jurist kijkt mee. Precedentwerking speelt.
+Jullie zoeken een oplossing die juridisch klopt en uitlegbaar is.`,
+        "Beunhaas":
+`Contracten en planning lopen. Jullie willen door met werk zonder claims of stilstand.
+Liever: alternatieve werkzaamheden starten dan ‘niets doen’.`
+      },
+      options: {
+        "G&O": [
+          ["A","Extra onderzoek financieren en planning herijken","Duurder, maar vergroot kans op groen."],
+          ["B","Gefaseerd starten met strikt ‘stop-go’ moment","Tempo, maar vraagt harde afspraken."],
+          ["C","Escaleren: juridisch bezwaar/druk uitoefenen","Risicovol: kan vertrouwen en traject schaden."]
+        ],
+        "Ecoresult": [
+          ["A","Aanvullend onderzoek uitvoeren","Robuust, maar kost tijd."],
+          ["B","Onderbouwing herstructureren + aanvullingen gericht","Slimmer: alleen ontbrekende stukken aanvullen."],
+          ["C","Aanvraag verdedigen zoals die is","Snel, maar kan later omvallen."]
+        ],
+        "IkWilNietMeewerken": [
+          ["A","Vergunning uitstellen tot alles rond is","Veilig, maar veel vertraging."],
+          ["B","Voorwaardelijke vergunning met heldere voorwaarden","Compromis: juridisch én tempo."],
+          ["C","Afwijzen","Hard stop. Groot politiek en projectrisico."]
+        ],
+        "Beunhaas": [
+          ["A","Startdatum verschuiven","Eerlijk, maar kost geld."],
+          ["B","Alternatieve werkzaamheden starten (laag risico)","Beperkt stilstand, houdt project in beweging."],
+          ["C","Claim indienen / druk zetten","Escalatie: juridisch conflict en reputatieschade."]
+        ]
+      },
+      eval: {
+        green: { "G&O":"A", "Ecoresult":"B", "IkWilNietMeewerken":"B", "Beunhaas":"B" },
+        orange: {
+          "G&O":["B"], "Ecoresult":["A"], "IkWilNietMeewerken":["A"], "Beunhaas":["A"]
+        },
+        red: {
+          "G&O":["C"], "Ecoresult":["C"], "IkWilNietMeewerken":["C"], "Beunhaas":["C"]
+        }
+      },
+      suggestions: [
+        "Stuur op ‘voorwaardelijke vergunning’ met expliciete stop-go momenten.",
+        "Laat Ecoresult gericht aanvullingen doen (geen ‘alles opnieuw’), maar wel juridisch robuust.",
+        "Houd aannemer aan het werk met alternatieve/laag-risico werkzaamheden om claims te beperken."
+      ]
+    }
+  ];
+}
+
+const SECRET_GOALS = {
+  "G&O": [
+    "Houd de vertraging beperkt; bewonersvertrouwen is kwetsbaar.",
+    "Vermijd budgetoverschrijding; stuur op voorspelbaarheid.",
+    "Laat zien dat je ‘in control’ bent richting bestuur."
+  ],
+  "Ecoresult": [
+    "Voorkom een juridisch kwetsbare route; kwaliteit boven snelheid.",
+    "Zorg dat mitigatie/protocol realistisch en uitvoerbaar blijft.",
+    "Minimaliseer kans op afwijzing of bezwaar."
+  ],
+  "IkWilNietMeewerken": [
+    "Voorkom precedent; wees consistent en uitlegbaar.",
+    "Beperk bestuurlijk risico door verdedigbare besluiten.",
+    "Houd het proces zorgvuldig (jurist kijkt mee)."
+  ],
+  "Beunhaas": [
+    "Voorkom stilstand; houd werkpakket draaiend.",
+    "Beperk faalkosten; voorkom late wijzigingen.",
+    "Minimaliseer kans op claims door duidelijke afspraken."
+  ]
+};
+
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
-function createScenario(seed){
-  const buildings = [
-    {label:"Oud stadsblok (1952)", type:"portiekflat", units:120},
-    {label:"Vooroorlogs pand (1934)", type:"galerij", units:68},
-    {label:"Jaren-70 complex (1976)", type:"portiekflat", units:96},
-    {label:"Monumentaal pand (1890)", type:"herbestemming", units:34},
-  ];
-  const locations = ["bosrand", "dorpskern", "binnenstad", "waterkant"];
-  const scopes = [
-    "gevelisolatie + kozijnen",
-    "dakrenovatie + zonnepanelen",
-    "spouwmuurisolatie + ventilatie",
-    "dak + gevel + installaties (integrale verduurzaming)"
-  ];
-  const speciesRisks = [
-    {key:"vleermuizen", label:"(vermoeden) spouwvleermuizen"},
-    {key:"huismussen", label:"huismussen (nestlocaties in dakrand)"},
-    {key:"gierzwaluwen", label:"gierzwaluwen (nestkasten aanwezig)"},
-    {key:"onzeker", label:"onbekend – veel groen, indicaties van soorten"}
-  ];
-  const constraints = [
-    "Bewoners zijn onrustig over overlast.",
-    "Er is politieke druk om tempo te maken.",
-    "Budget is krap door andere projecten.",
-    "De aannemer heeft capaciteit gereserveerd in Q2.",
-    "Bevoegd gezag heeft beperkte capaciteit (lange doorlooptijd)."
-  ];
+/* Room state */
+function makeRoom(roomId){
+  const scenarios = makeScenarios();
+  const secretGoals = {};
+  ROLES.forEach(r=> secretGoals[r] = pick(SECRET_GOALS[r]));
+
   return {
-    building: pick(buildings),
-    location: pick(locations),
-    scope: pick(scopes),
-    risk: pick(speciesRisks),
-    constraint: pick(constraints),
-    smp: pick([
-      "SMP in ontwikkeling (mogelijk 2027). Niet zeker: plan regulier als basis.",
-      "SMP onzeker: je kunt er niet op leunen, alleen monitoren.",
-      "SMP komt eraan, maar bevoegd gezag is nog streng op volledigheid."
-    ])
+    roomId,
+    createdAt: nowIso(),
+    phase: "lobby",          // lobby | scenario | reflection | done
+    scenarioIndex: -1,
+    scenarioEndsAt: null,
+    reflectionEndsAt: null,
+    remaining: 0,
+    transparency: false,
+    transparencyRequestedBy: {},
+    teams: {                 // role -> { name, connected, socketId }
+      "G&O": null, "Ecoresult": null, "IkWilNietMeewerken": null, "Beunhaas": null
+    },
+    choices: {},             // role -> { choiceKey, ts }
+    outcome: null,           // computed after scenario
+    reflections: [],         // { scenarioId, role, text, ts }
+    scenarios,
+    secretGoals,
+    log: []
   };
 }
 
-function imagePromptForRound(roundId, sc){
-  const base = `Realistic Dutch housing complex, ${sc.location}, ${sc.building.label}, architectural documentary style, natural lighting`;
-  if(roundId==="scope") return `${base}, wide aerial shot showing building and lots of green around, planning context, no text`;
-  if(roundId==="finding") return `Close-up documentary photo of wildlife signs near roof edge / cavity wall in Dutch brick building, realistic, no text`;
-  if(roundId==="permit") return `Municipal office desk scene with documents and laptop, Dutch context, realistic, no readable text`;
-  if(roundId==="execution") return `Construction site at Dutch apartment building with scaffolding, workers waiting, realistic, no logos, no text`;
+const rooms = new Map(); // roomId -> room
+
+function log(room, tag, msg){
+  room.log.push({ tag, msg, ts: Date.now() });
+  if(room.log.length > 200) room.log.shift();
+}
+
+function evaluateScenario(room){
+  const scenario = room.scenarios[room.scenarioIndex];
+  const evalSpec = scenario.eval;
+  const perRole = {};
+  let anyRed = false;
+  let anyOrange = false;
+
+  ROLES.forEach(role=>{
+    const chosen = room.choices[role]?.choiceKey || null;
+    const g = evalSpec.green[role];
+    const o = (evalSpec.orange[role] || []);
+    const r = (evalSpec.red[role] || []);
+    let color = "orange";
+    if(chosen === g) color = "green";
+    else if(r.includes(chosen) || chosen === null) color = "red";
+    else if(o.includes(chosen)) color = "orange";
+    else color = "orange";
+    perRole[role] = { choiceKey: chosen, color };
+    if(color === "red") anyRed = true;
+    if(color === "orange") anyOrange = true;
+  });
+
+  const overall = anyRed ? "red" : (anyOrange ? "orange" : "green");
+  return {
+    scenarioId: scenario.id,
+    overall,
+    perRole,
+    suggestions: scenario.suggestions
+  };
+}
+
+function stateForClient(room, role=null, isFacilitator=false, isDisplay=false){
+  const scenario = (room.scenarioIndex >= 0 && room.scenarioIndex < room.scenarios.length)
+    ? room.scenarios[room.scenarioIndex] : null;
+
+  const base = {
+    roomId: room.roomId,
+    phase: room.phase,
+    scenarioIndex: room.scenarioIndex,
+    remaining: room.remaining,
+    transparency: room.transparency,
+    teams: Object.fromEntries(ROLES.map(r=> [r, room.teams[r] ? { name: room.teams[r].name, connected: room.teams[r].connected } : null])),
+    choices: Object.fromEntries(ROLES.map(r=> [r, room.choices[r] ? { choiceKey: room.choices[r].choiceKey } : null])),
+    outcome: room.outcome,
+  };
+
+  if(scenario){
+    base.scenario = {
+      id: scenario.id,
+      title: scenario.title,
+      narrative: scenario.narrative,
+    };
+    if(isDisplay){
+      base.display = {
+        suggestions: scenario.suggestions,
+        positions: null
+      };
+    }
+  }
+
+  if(role && scenario){
+    base.my = {
+      role,
+      secretGoal: room.secretGoals[role],
+      position: scenario.positions[role],
+      options: scenario.options[role]
+    };
+  }
+
+  if(isFacilitator){
+    base.facilitator = {
+      reflectionsCount: room.reflections.length
+    };
+  }
+
   return base;
 }
 
-// Base round templates (fallback). AI-mode can override per room/round.
-const BASE_ROUNDS = [
-  {
-    id:"scope",
-    title:"Ronde 1 – Scope & onzekerheden",
-    prompt:(sc)=>`Project: ${sc.building.label} (${sc.building.units} woningen) aan ${sc.location}. Voorgenomen: ${sc.scope}. Ecologisch risico: ${sc.risk.label}. ${sc.constraint}`,
-    options:{
-      "G&O":[["A","Voorlopige scope + onzekerhedenlijst","‘80%-scope’ + wat nog onbekend is."],["B","Scope open (‘onderzoek maar breed’)","Worst-case laten verkennen."],["C","Scope minimaliseren","Beperkte werkzaamheden communiceren."]],
-      "Ecoresult":[["A","Worst-case quickscan","Breed onderzoek (duur/lang)."],["B","Gefaseerd: inspectie → gericht","Toegang + seizoensplanning."],["C","Wachten op scope","Start later, dossier ‘schoon’."]],
-      "IkWilNietMeewerken":[["A","Eist volledigheid vooraf","Onvolledig tenzij scope concreet."],["B","Denkt mee, vraagt planning","Vensters + alternatieven."],["C","Extra eisen dataverzameling","Foto’s/tekeningen verplicht."]],
-      "Beunhaas":[["A","Startdatum vastleggen","Harde datum + toegang."],["B","Meewerken mits duidelijkheid","Go/no-go moment."],["C","Capaciteit verplaatsen","Niet rond? dan schuift het."]],
-    }
-  },
-  {
-    id:"finding",
-    title:"Ronde 2 – Vondst / bewonersmelding",
-    prompt:(sc)=>`Bewoners melden activiteit rond dakrand/spouw (mogelijk ${sc.risk.key}). Tegelijk vraagt Service om spoedreparatie (lekkage). Wat doen jullie?`,
-    options:{
-      "G&O":[["A","Spoedmaatregel + stop op verstorend werk","Noodreparatie, ecologisch veilig."],["B","Doorpakken (planning leidend)","Druk op snelle start."],["C","Communicatie eerst","Bewonersbrief + toegang regelen."]],
-      "Ecoresult":[["A","Direct aanvullend onderzoek","Venster + toegang + log meldingen."],["B","Mitigatie alvast voorbereiden","Kasten/voorzieningen klaar."],["C","Eerst feiten verzamelen","Snelle inspectie."]],
-      "IkWilNietMeewerken":[["A","Onderzoek verplicht","Zonder onderzoek geen verstoring."],["B","Spoed toe onder voorwaarden","Minimale ingreep + toezicht."],["C","Extra alternatievenonderbouwing","Eerst papier, dan actie."]],
-      "Beunhaas":[["A","Wacht op Ecoresult","Geen werk zonder groen licht."],["B","Alleen noodreparatie","Afgebakend en snel."],["C","Start met voorbereiding","Steiger/voorbereiding (risico)."]],
-    }
-  },
-  {
-    id:"permit",
-    title:"Ronde 3 – Vergunningsdossier",
-    prompt:(sc)=>`Dossieropbouw. Bevoegd gezag waarschuwt: behandeltijd 9–12 maanden en vaak ‘aanvullingen’. ${sc.smp}`,
-    options:{
-      "G&O":[["A","Proactief compleet maken","Alternatieven, planning, tekeningen."],["B","Snel indienen + later aanvullen","Winst, maar kans op vragen."],["C","Wachten op SMP doorbraak","Hoopt op vereenvoudiging."]],
-      "Ecoresult":[["A","Alleen indienen als compleet","Minder terugkoppeling."],["B","Indienen met fasering + vooroverleg","Balans."],["C","Innovatie als onderbouwing","Meer data, kan vragen oproepen."]],
-      "IkWilNietMeewerken":[["A","Strikte toetsing","Aanvullingen waarschijnlijk."],["B","Vooroverleg mogelijk","Scheelt later."],["C","Focus alternatieven/mitigatie","Strenge bewijslast."]],
-      "Beunhaas":[["A","Wachttijd ok met planning","Wel vastleggen."],["B","Parallel voorbereiden","Bij laag risico."],["C","Heronderhandeling","Onzekerheid + inflatie."]],
-    }
-  },
-  {
-    id:"execution",
-    title:"Ronde 4 – Startbeslissing (over 3 jaar)",
-    prompt:(sc)=>`Startdatum nadert. Tegenslag: bewoners weigeren toegang in 1 portiek. Wat nu?`,
-    options:{
-      "G&O":[["A","Segmenteren: starten waar kan","Fasering voorkomt totale vertraging."],["B","Pauze tot 100% toegang","Veilig, maar vertraagt."],["C","Escaleren (juridisch)","Toegang afdwingen (reputatie)."]],
-      "Ecoresult":[["A","Werkprotocol + toezicht","Borging ecologische veiligheid."],["B","Extra onderzoek/mitigatie","Risico omlaag, tijd omhoog."],["C","Niet-verstorende maatregelen eerst","Veilige acties stapelen."]],
-      "IkWilNietMeewerken":[["A","Groen licht met voorwaarden","Toezicht/vensters/rapportage."],["B","Eerst aantoonbare toegang","Zonder toegang geen start."],["C","Extra monitoring verplicht","Monitoring seizoen/winter."]],
-      "Beunhaas":[["A","Gefaseerd starten","Strakke coördinatie."],["B","1 startmoment","Anders duurder."],["C","Extra stelpost onvoorzien","Voor vertraging/risico."]],
-    }
+/* ----------------------- Timers ----------------------- */
+function clearRoomTimers(room){
+  if(room._tick){
+    clearInterval(room._tick);
+    room._tick = null;
   }
-];
-
-function evaluateRound(choiceMap){
-  let deltaScore = 0, deltaRisk = 0;
-  const trust = { "G&O":0, "Ecoresult":0, "IkWilNietMeewerken":0, "Beunhaas":0 };
-  const go = choiceMap["G&O"], eco = choiceMap["Ecoresult"], gov = choiceMap["IkWilNietMeewerken"], con = choiceMap["Beunhaas"];
-
-  const addAll = (t)=>{ for(const k of Object.keys(trust)) trust[k]+=t; };
-
-  if(go==="A"){ deltaScore+=2; trust["Ecoresult"]+=1; trust["IkWilNietMeewerken"]+=1; }
-  if(go==="B"){ deltaRisk+=2; deltaScore-=1; trust["Ecoresult"]-=2; trust["IkWilNietMeewerken"]-=1; }
-  if(go==="C"){ deltaRisk+=3; deltaScore-=2; trust["Ecoresult"]-=2; trust["IkWilNietMeewerken"]-=2; }
-
-  if(eco==="A"){ deltaRisk+=1; deltaScore-=1; trust["G&O"]-=1; }
-  if(eco==="B"){ deltaScore+=2; trust["G&O"]+=1; trust["IkWilNietMeewerken"]+=1; }
-  if(eco==="C"){ deltaRisk+=1; deltaScore-=1; trust["G&O"]-=1; trust["Beunhaas"]-=1; }
-
-  if(gov==="A"){ deltaRisk-=1; deltaScore-=1; trust["G&O"]-=1; trust["Beunhaas"]-=1; }
-  if(gov==="B"){ deltaScore+=1; trust["Ecoresult"]+=1; }
-  if(gov==="C"){ deltaRisk+=1; deltaScore-=1; trust["G&O"]-=1; }
-
-  if(con==="A"){ deltaScore+=1; trust["Ecoresult"]+=1; }
-  if(con==="B"){ deltaScore+=1; trust["G&O"]+=1; }
-  if(con==="C"){ deltaRisk+=1; deltaScore-=1; trust["G&O"]-=1; }
-
-  if((go==="B"||go==="C") && eco==="A"){ deltaRisk+=2; deltaScore-=2; trust["G&O"]-=1; trust["Ecoresult"]-=1; }
-  if(gov==="A" && go==="C"){ deltaRisk+=2; deltaScore-=2; trust["IkWilNietMeewerken"]-=1; trust["G&O"]-=1; }
-  if(con==="C" && gov==="A"){ deltaRisk+=2; deltaScore-=1; trust["Beunhaas"]-=2; }
-  if(go==="A" && eco==="B" && gov==="B" && (con==="B"||con==="A")){ deltaScore+=2; deltaRisk-=1; addAll(1); }
-
-  for(const k of Object.keys(trust)){
-    trust[k] = Math.max(-5, Math.min(5, trust[k]));
-  }
-  return { deltaScore, deltaRisk, trust };
+}
+function startTick(room){
+  clearRoomTimers(room);
+  room._tick = setInterval(()=>{
+    if(room.phase === "scenario" || room.phase === "reflection"){
+      room.remaining = Math.max(0, room.remaining - 1);
+      broadcastRoom(room);
+      if(room.remaining <= 0){
+        if(room.phase === "scenario") endScenario(room, "timer");
+        else if(room.phase === "reflection") endReflection(room, "timer");
+      }
+    }
+  }, 1000);
 }
 
-/* ----------------------- OpenAI helpers (optional) ----------------------- */
-async function openaiJson({ model, system, user, schemaName, schema }){
-  if(!OPENAI_API_KEY) throw new Error("No OPENAI_API_KEY");
-  const body = {
-    model: model || "gpt-4.1-mini",
-    messages: [
-      { role:"system", content: system },
-      { role:"user", content: user }
-    ],
-    temperature: 0.8,
-    response_format: {
-      type: "json_schema",
-      json_schema: { name: schemaName || "output", schema, strict: true }
+function broadcastRoom(room){
+  io.to(room.roomId).emit("room_state", stateForClient(room, null, false, false));
+  // per role personalized state
+  ROLES.forEach(role=>{
+    const t = room.teams[role];
+    if(t && t.socketId){
+      io.to(t.socketId).emit("room_state_role", stateForClient(room, role, false, false));
     }
-  };
-
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-    method:"POST",
-    headers:{
-      "Authorization": `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type":"application/json"
-    },
-    body: JSON.stringify(body)
   });
-  if(!resp.ok){
-    const t = await resp.text();
-    throw new Error(`OpenAI error ${resp.status}: ${t}`);
+  // facilitator sockets
+  if(room._facilitatorSocketId){
+    io.to(room._facilitatorSocketId).emit("room_state_fac", stateForClient(room, null, true, false));
   }
-  const data = await resp.json();
-  const content = data.choices?.[0]?.message?.content;
-  return JSON.parse(content);
-}
-
-async function openaiImage({ prompt, size }){
-  if(!OPENAI_API_KEY) throw new Error("No OPENAI_API_KEY");
-  const body = {
-    model: "gpt-image-1",
-    prompt,
-    size: size || "1024x1024"
-  };
-  const resp = await fetch("https://api.openai.com/v1/images", {
-    method:"POST",
-    headers:{
-      "Authorization": `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type":"application/json"
-    },
-    body: JSON.stringify(body)
-  });
-  if(!resp.ok){
-    const t = await resp.text();
-    throw new Error(`OpenAI image error ${resp.status}: ${t}`);
-  }
-  const data = await resp.json();
-  // images endpoint returns base64 in data[0].b64_json (commonly)
-  const b64 = data.data?.[0]?.b64_json;
-  if(!b64) throw new Error("No image b64_json returned");
-  return `data:image/png;base64,${b64}`;
-}
-
-// JSON Schemas
-const SCENARIO_SCHEMA = {
-  type:"object",
-  additionalProperties:false,
-  properties:{
-    building:{ type:"object", additionalProperties:false, properties:{
-      label:{type:"string"}, type:{type:"string"}, units:{type:"integer"}
-    }, required:["label","type","units"]},
-    location:{type:"string"},
-    scope:{type:"string"},
-    risk:{ type:"object", additionalProperties:false, properties:{
-      key:{type:"string"}, label:{type:"string"}
-    }, required:["key","label"]},
-    constraint:{type:"string"},
-    smp:{type:"string"}
-  },
-  required:["building","location","scope","risk","constraint","smp"]
-};
-
-const ROUND_SCHEMA = {
-  type:"object",
-  additionalProperties:false,
-  properties:{
-    title:{type:"string"},
-    prompt:{type:"string"},
-    imagePrompt:{type:"string"},
-    options:{
-      type:"object",
-      additionalProperties:false,
-      properties:{
-        "G&O":{ type:"array", minItems:3, maxItems:3, items:{
-          type:"array", minItems:3, maxItems:3, items:{type:"string"}
-        }},
-        "Ecoresult":{ type:"array", minItems:3, maxItems:3, items:{
-          type:"array", minItems:3, maxItems:3, items:{type:"string"}
-        }},
-        "IkWilNietMeewerken":{ type:"array", minItems:3, maxItems:3, items:{
-          type:"array", minItems:3, maxItems:3, items:{type:"string"}
-        }},
-        "Beunhaas":{ type:"array", minItems:3, maxItems:3, items:{
-          type:"array", minItems:3, maxItems:3, items:{type:"string"}
-        }}
-      },
-      required:["G&O","Ecoresult","IkWilNietMeewerken","Beunhaas"]
-    }
-  },
-  required:["title","prompt","imagePrompt","options"]
-};
-
-/* ----------------------- Rooms ----------------------- */
-const rooms = new Map();
-
-function newRoom(){
-  const roomId = randCode();
-  const scenario = createScenario(roomId);
-  const room = {
-    createdAt: now(),
-    roomId,
-    facilitatorSocketId: null,
-    teams: {},
-    roundIndex: 0,
-    scenario,
-    round: null,
-    choices: {},
-    score: 0,
-    risk: 0,
-    trust: { "G&O":0, "Ecoresult":0, "IkWilNietMeewerken":0, "Beunhaas":0 },
-    log: [],
-    images: {}, // roundId -> {prompt, url}
-    ai: {
-      enabled: false,
-      imagesEnabled: true,
-      lastError: null
-    }
-  };
-  rooms.set(roomId, room);
-  return roomId;
-}
-
-function log(room, tag, msg){
-  room.log.push({ ts: now(), tag, msg });
-  if(room.log.length > 600) room.log.shift();
-}
-function clearChoices(room){ room.choices = {}; }
-function allRolesChosen(room){ return ROLES.every(r => room.choices[r] && room.choices[r].choiceKey); }
-
-function getBaseRound(room){
-  const tpl = BASE_ROUNDS[room.roundIndex] || null;
-  if(!tpl) return null;
-  return {
-    id: tpl.id,
-    title: tpl.title,
-    prompt: tpl.prompt(room.scenario),
-    options: tpl.options,
-    imagePrompt: imagePromptForRound(tpl.id, room.scenario)
-  };
-}
-
-async function maybeAiScenario(room){
-  if(!room.ai.enabled) return;
-  try{
-    const system = "Je bent een ecologie/vergunningen spelscenario generator voor woningcorporaties. Genereer realistische NL-casus voor Flora & Fauna quickscan/onderzoek/vergunning/uitvoering. Geen bedrijfsnamen, geen logo's, geen tekst in 'image prompts'.";
-    const user = "Genereer 1 scenario-object met: building(label,type,units), location, scope, risk(key,label), constraint, smp. Houd het realistisch voor woningcorporaties.";
-    const s = await openaiJson({ system, user, schemaName:"scenario", schema: SCENARIO_SCHEMA });
-    room.scenario = s;
-    room.ai.lastError = null;
-    log(room,"AI","AI scenario gegenereerd.");
-  } catch(e){
-    room.ai.lastError = String(e.message || e);
-    log(room,"AI-fout", room.ai.lastError);
+  // display sockets
+  if(room._displaySocketId){
+    io.to(room._displaySocketId).emit("room_state_display", stateForClient(room, null, false, true));
   }
 }
 
-async function maybeAiRound(room, roundId){
-  if(!room.ai.enabled) return null;
-  try{
-    const base = getBaseRound(room);
-    const system = "Je maakt een korte, speelse maar realistische ronde voor een multiplayer rollenspel (woningcorporatie, ecologisch bureau, bevoegd gezag, aannemer). Elke rol krijgt EXACT 3 keuzes A/B/C. Keuzes moeten plausibel zijn, in NL-context. Schrijf compact.";
-    const user = `Scenario: gebouw=${room.scenario.building.label}, units=${room.scenario.building.units}, locatie=${room.scenario.location}, scope=${room.scenario.scope}, risico=${room.scenario.risk.label}, constraint=${room.scenario.constraint}, SMP=${room.scenario.smp}.
-Maak een variant op de volgende ronde (basis): title="${base.title}", prompt="${base.prompt}".
-Output moet voldoen aan schema. Elke optie is ["A"|"B"|"C", korte titel, 1 zin uitleg].`;
-    const r = await openaiJson({ system, user, schemaName:`round_${roundId}`, schema: ROUND_SCHEMA, model:"gpt-4.1-mini" });
-    // enforce A/B/C keys order if model messed up
-    for(const role of ROLES){
-      r.options[role] = r.options[role].map(arr=>{
-        arr[0] = (arr[0]||"").trim().toUpperCase();
-        return arr;
-      });
-    }
-    room.ai.lastError = null;
-    log(room,"AI",`AI ronde variant gemaakt (${roundId}).`);
-    return { ...r, id: roundId };
-  } catch(e){
-    room.ai.lastError = String(e.message || e);
-    log(room,"AI-fout", room.ai.lastError);
-    return null;
+/* ----------------------- Phase transitions ----------------------- */
+function startGame(room){
+  room.phase = "scenario";
+  room.scenarioIndex = 0;
+  room.choices = {};
+  room.outcome = null;
+  room.transparency = false;
+  room.transparencyRequestedBy = {};
+  room.remaining = 300; // 5 min
+  log(room, "START", "Game gestart (Scenario 1).");
+  startTick(room);
+  broadcastRoom(room);
+}
+function endScenario(room, reason){
+  // compute outcome
+  room.outcome = evaluateScenario(room);
+  log(room, "SCENARIO", `Scenario ${room.outcome.scenarioId} afgerond (${reason}). Uitkomst: ${room.outcome.overall.toUpperCase()}.`);
+  // Move to reflection
+  room.phase = "reflection";
+  room.remaining = 60; // 1 min reflectie
+  // lock transparency suggestions still visible on display
+  broadcastRoom(room);
+}
+function endReflection(room, reason){
+  log(room, "REFLECTIE", `Reflectie afgerond (${reason}).`);
+  // next scenario or done
+  if(room.scenarioIndex < room.scenarios.length - 1){
+    room.phase = "scenario";
+    room.scenarioIndex += 1;
+    room.choices = {};
+    room.outcome = null;
+    room.transparency = false;
+    room.transparencyRequestedBy = {};
+    room.remaining = 300;
+    log(room, "NEXT", `Start Scenario ${room.scenarios[room.scenarioIndex].id}.`);
+  } else {
+    room.phase = "done";
+    room.remaining = 0;
+    log(room, "DONE", "Game afgerond.");
+    clearRoomTimers(room);
   }
+  broadcastRoom(room);
 }
 
-async function maybeAiImage(room, round){
-  if(!room.ai.enabled || !room.ai.imagesEnabled) return;
-  if(!OPENAI_API_KEY) return;
-  try{
-    const url = await openaiImage({ prompt: round.imagePrompt, size: "1024x1024" });
-    room.images[round.id] = { prompt: round.imagePrompt, url };
-    room.ai.lastError = null;
-    log(room,"AI","AI beeld gegenereerd.");
-  } catch(e){
-    room.ai.lastError = String(e.message || e);
-    // keep prompt but no url
-    room.images[round.id] = room.images[round.id] || { prompt: round.imagePrompt, url: null };
-    log(room,"AI-fout", room.ai.lastError);
-  }
-}
-
-function emitRoom(roomId){
+/* ----------------------- HTTP Report (facilitator only) ----------------------- */
+app.get("/api/report", (req,res)=>{
+  const roomId = String(req.query.roomId||"").toUpperCase();
+  const token = String(req.query.token||"");
   const room = rooms.get(roomId);
-  if(!room) return;
-  io.to(roomId).emit("room_state", {
-    roomId,
+  if(!room) return res.status(404).json({ error: "Room not found" });
+  if(!token || token !== room._facilitatorToken) return res.status(403).json({ error: "Forbidden" });
+
+  res.json({
+    roomId: room.roomId,
     createdAt: room.createdAt,
-    scenario: room.scenario,
-    roundIndex: room.roundIndex,
-    round: room.round,
-    teams: room.teams,
-    choices: room.choices,
-    score: room.score,
-    risk: room.risk,
-    trust: room.trust,
-    log: room.log.slice(-60),
-    images: room.images,
-    ai: {
-      enabled: room.ai.enabled,
-      imagesEnabled: room.ai.imagesEnabled,
-      lastError: room.ai.lastError,
-      hasKey: Boolean(OPENAI_API_KEY)
-    }
-  });
-}
-
-/* ----------------------- Socket IO ----------------------- */
-io.on("connection", (socket)=>{
-  socket.on("create_room", ()=>{
-    const roomId = newRoom();
-    socket.emit("room_created", { roomId });
-  });
-
-  socket.on("join_room", ({ roomId, asFacilitator })=>{
-    const room = rooms.get(roomId);
-    if(!room) return socket.emit("error_msg", "Room bestaat niet.");
-    socket.join(roomId);
-
-    if(asFacilitator){
-      room.facilitatorSocketId = socket.id;
-      log(room,"Facilitator","Facilitator is verbonden.");
-      socket.emit("joined", { roomId, role:"Facilitator" });
-      emitRoom(roomId);
-      return;
-    }
-    socket.emit("joined", { roomId, role:"Player" });
-    emitRoom(roomId);
-  });
-
-  socket.on("claim_role", ({ roomId, roleKey, teamName })=>{
-    const room = rooms.get(roomId);
-    if(!room) return socket.emit("error_msg", "Room bestaat niet.");
-    if(!ROLES.includes(roleKey)) return socket.emit("error_msg", "Onbekende rol.");
-    const existing = room.teams[roleKey];
-    if(existing && existing.connected && existing.socketId !== socket.id){
-      return socket.emit("error_msg", "Deze rol is al bezet.");
-    }
-    room.teams[roleKey] = { name: teamName || roleKey, socketId: socket.id, connected:true };
-    log(room,"Team",`${roleKey} is bezet door '${room.teams[roleKey].name}'.`);
-    emitRoom(roomId);
-  });
-
-  socket.on("set_ai_mode", async ({ roomId, enabled, imagesEnabled })=>{
-    const room = rooms.get(roomId);
-    if(!room) return;
-    if(room.facilitatorSocketId !== socket.id) return;
-    if(enabled && !OPENAI_API_KEY){
-      room.ai.enabled = false;
-      room.ai.lastError = "OPENAI_API_KEY ontbreekt op de server.";
-      log(room,"AI-fout", room.ai.lastError);
-    } else {
-      room.ai.enabled = Boolean(enabled);
-      if(typeof imagesEnabled === "boolean") room.ai.imagesEnabled = imagesEnabled;
-      room.ai.lastError = null;
-      log(room,"AI",`AI-mode: ${room.ai.enabled?"AAN":"UIT"} (beelden: ${room.ai.imagesEnabled?"AAN":"UIT"})`);
-    }
-    emitRoom(roomId);
-  });
-
-  socket.on("start_game", async ({ roomId })=>{
-    const room = rooms.get(roomId);
-    if(!room) return;
-    if(room.facilitatorSocketId !== socket.id) return;
-
-    room.roundIndex = 0;
-    room.score = 0;
-    room.risk = 0;
-    room.trust = { "G&O":0, "Ecoresult":0, "IkWilNietMeewerken":0, "Beunhaas":0 };
-    clearChoices(room);
-    room.images = {};
-    room.log = [];
-    log(room,"Start","Game gestart.");
-
-    await maybeAiScenario(room);
-
-    // create round
-    let round = getBaseRound(room);
-    const aiRound = await maybeAiRound(room, round.id);
-    if(aiRound) round = aiRound;
-
-    room.round = round;
-    room.images[round.id] = { prompt: round.imagePrompt, url: null };
-    emitRoom(roomId);
-
-    // async image generation
-    await maybeAiImage(room, round);
-    emitRoom(roomId);
-  });
-
-  socket.on("new_scenario", async ({ roomId })=>{
-    const room = rooms.get(roomId);
-    if(!room) return;
-    if(room.facilitatorSocketId !== socket.id) return;
-
-    room.round = null;
-    room.roundIndex = 0;
-    clearChoices(room);
-    room.score = 0;
-    room.risk = 0;
-    room.trust = { "G&O":0, "Ecoresult":0, "IkWilNietMeewerken":0, "Beunhaas":0 };
-    room.images = {};
-    log(room,"Scenario","Nieuw scenario…");
-
-    if(room.ai.enabled) await maybeAiScenario(room);
-    else room.scenario = createScenario(roomId + "-" + Date.now());
-
-    emitRoom(roomId);
-  });
-
-  socket.on("submit_choice", async ({ roomId, roleKey, choiceKey })=>{
-    const room = rooms.get(roomId);
-    if(!room) return;
-    if(!ROLES.includes(roleKey)) return;
-    if(!room.teams[roleKey] || room.teams[roleKey].socketId !== socket.id){
-      return socket.emit("error_msg", "Je hebt deze rol niet geclaimd.");
-    }
-    if(!room.round) return socket.emit("error_msg", "Game is nog niet gestart.");
-    const opts = room.round.options?.[roleKey] || [];
-    if(!opts.some(o => o[0]===choiceKey)){
-      return socket.emit("error_msg", "Ongeldige keuze.");
-    }
-    room.choices[roleKey] = { roundId: room.round.id, choiceKey, ts: now() };
-    log(room,"Keuze",`${roleKey} koos ${choiceKey}.`);
-    emitRoom(roomId);
-
-    if(allRolesChosen(room)){
-      const choiceMap = {};
-      for(const r of ROLES) choiceMap[r] = room.choices[r].choiceKey;
-      const res = evaluateRound(choiceMap);
-
-      room.score += res.deltaScore;
-      room.risk  += res.deltaRisk;
-      for(const k of Object.keys(room.trust)){
-        room.trust[k] = Math.max(-5, Math.min(5, room.trust[k] + res.trust[k]));
-      }
-      log(room,"Effect",`Ronde-effect: score ${res.deltaScore>=0?"+":""}${res.deltaScore}, risico ${res.deltaRisk>=0?"+":""}${res.deltaRisk}.`);
-
-      room.roundIndex = Math.min(BASE_ROUNDS.length, room.roundIndex + 1);
-      clearChoices(room);
-
-      if(room.roundIndex >= BASE_ROUNDS.length){
-        room.round = null;
-        log(room,"Einde","Game klaar. Gebruik KPI’s + log voor nabespreking.");
-        emitRoom(roomId);
-        return;
-      }
-
-      // next round
-      let nextRound = getBaseRound(room);
-      const aiRound = await maybeAiRound(room, nextRound.id);
-      if(aiRound) nextRound = aiRound;
-
-      room.round = nextRound;
-      room.images[nextRound.id] = { prompt: nextRound.imagePrompt, url: null };
-      log(room,"Ronde", nextRound.title);
-      emitRoom(roomId);
-
-      await maybeAiImage(room, nextRound);
-      emitRoom(roomId);
-    }
-  });
-
-  socket.on("reset_room", ({ roomId })=>{
-    const room = rooms.get(roomId);
-    if(!room) return;
-    if(room.facilitatorSocketId !== socket.id) return;
-    room.round = null;
-    room.roundIndex = 0;
-    clearChoices(room);
-    room.score = 0;
-    room.risk = 0;
-    room.trust = { "G&O":0, "Ecoresult":0, "IkWilNietMeewerken":0, "Beunhaas":0 };
-    room.log = [];
-    room.images = {};
-    log(room,"Reset","Room gereset.");
-    emitRoom(roomId);
-  });
-
-  socket.on("disconnect", ()=>{
-    for(const [rid, room] of rooms.entries()){
-      for(const roleKey of ROLES){
-        const t = room.teams[roleKey];
-        if(t && t.socketId === socket.id){
-          t.connected = false;
-          log(room,"Team",`${roleKey} is offline.`);
-          emitRoom(rid);
-        }
-      }
-      if(room.facilitatorSocketId === socket.id){
-        room.facilitatorSocketId = null;
-        log(room,"Facilitator","Facilitator is offline.");
-        emitRoom(rid);
-      }
-    }
+    finishedAt: room.phase === "done" ? nowIso() : null,
+    scenarios: room.scenarios.map(s=>({ id:s.id, title:s.title })),
+    reflections: room.reflections,
+    log: room.log,
   });
 });
 
-server.listen(PORT, ()=> console.log(`Server running on http://localhost:${PORT}`));
+/* ----------------------- Socket events ----------------------- */
+io.on("connection",(socket)=>{
+  socket.on("create_room", ()=>{
+    let code = randCode();
+    while(rooms.has(code)) code = randCode();
+    rooms.set(code, makeRoom(code));
+    socket.emit("room_created", { roomId: code });
+  });
+
+  socket.on("join_room", ({roomId, mode})=>{
+    const code = String(roomId||"").trim().toUpperCase();
+    const room = rooms.get(code);
+    if(!room) return socket.emit("error_msg","Roomcode niet gevonden.");
+    socket.join(code);
+
+    if(mode === "facilitator"){
+      // assign facilitator token
+      const token = room._facilitatorToken || (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2));
+      room._facilitatorToken = token;
+      room._facilitatorSocketId = socket.id;
+      socket.emit("facilitator_token", { token });
+      log(room, "JOIN", "Facilitator verbonden.");
+      broadcastRoom(room);
+      return;
+    }
+
+    if(mode === "display"){
+      room._displaySocketId = socket.id;
+      log(room, "JOIN", "Display verbonden.");
+      broadcastRoom(room);
+      return;
+    }
+
+    // player
+    socket.emit("joined", { roomId: code });
+    log(room, "JOIN", "Speler verbonden.");
+    broadcastRoom(room);
+  });
+
+  socket.on("claim_role", ({roomId, roleKey, teamName})=>{
+    const code = String(roomId||"").trim().toUpperCase();
+    const role = String(roleKey||"").trim();
+    const room = rooms.get(code);
+    if(!room) return socket.emit("error_msg","Room niet gevonden.");
+    if(!ROLES.includes(role)) return socket.emit("error_msg","Onbekende rol.");
+    if(room.teams[role] && room.teams[role].connected) return socket.emit("error_msg","Rol is al bezet.");
+
+    room.teams[role] = { name: String(teamName||role), connected: true, socketId: socket.id };
+    socket.data.role = role;
+    socket.data.roomId = code;
+
+    log(room, "ROLE", `${role} gekozen door ${room.teams[role].name}.`);
+    broadcastRoom(room);
+  });
+
+  socket.on("start_game", ({roomId})=>{
+    const code = String(roomId||"").trim().toUpperCase();
+    const room = rooms.get(code);
+    if(!room) return socket.emit("error_msg","Room niet gevonden.");
+    if(room.phase !== "lobby") return socket.emit("error_msg","Game is al gestart.");
+    // Require at least 2 roles connected to start (workshop tolerant)
+    const connectedCount = ROLES.filter(r=> room.teams[r] && room.teams[r].connected).length;
+    if(connectedCount < 2) return socket.emit("error_msg","Minimaal 2 rollen nodig om te starten.");
+    startGame(room);
+  });
+
+  socket.on("submit_choice", ({roomId, roleKey, choiceKey})=>{
+    const code = String(roomId||"").trim().toUpperCase();
+    const role = String(roleKey||"").trim();
+    const choice = String(choiceKey||"").trim().toUpperCase();
+    const room = rooms.get(code);
+    if(!room) return socket.emit("error_msg","Room niet gevonden.");
+    if(room.phase !== "scenario") return socket.emit("error_msg","Keuzes kunnen alleen tijdens een scenario.");
+    if(!ROLES.includes(role)) return socket.emit("error_msg","Onbekende rol.");
+
+    // lock: only role owner
+    const team = room.teams[role];
+    if(!team || team.socketId !== socket.id) return socket.emit("error_msg","Je hebt deze rol niet.");
+
+    // validate choice
+    const scenario = room.scenarios[room.scenarioIndex];
+    const opts = scenario.options[role].map(o=>o[0]);
+    if(!opts.includes(choice)) return socket.emit("error_msg","Ongeldige keuze.");
+
+    room.choices[role] = { choiceKey: choice, ts: Date.now() };
+    log(room, "CHOICE", `${role} koos ${choice}.`);
+
+    // auto end if all connected roles have chosen (and at least 2 roles)
+    const connectedRoles = ROLES.filter(r=> room.teams[r] && room.teams[r].connected);
+    const allChosen = connectedRoles.every(r=> room.choices[r] && room.choices[r].choiceKey);
+    broadcastRoom(room);
+    if(allChosen && connectedRoles.length >= 2){
+      endScenario(room, "alle keuzes binnen");
+    }
+  });
+
+  socket.on("request_transparency", ({roomId, roleKey})=>{
+    const code = String(roomId||"").trim().toUpperCase();
+    const role = String(roleKey||"").trim();
+    const room = rooms.get(code);
+    if(!room) return socket.emit("error_msg","Room niet gevonden.");
+    if(room.phase !== "scenario") return socket.emit("error_msg","Transparantie kan alleen tijdens een scenario.");
+    if(!ROLES.includes(role)) return socket.emit("error_msg","Onbekende rol.");
+    const team = room.teams[role];
+    if(!team || team.socketId !== socket.id) return socket.emit("error_msg","Je hebt deze rol niet.");
+
+    room.transparencyRequestedBy[role] = true;
+    const count = Object.keys(room.transparencyRequestedBy).length;
+    if(count >= 2){
+      room.transparency = true;
+      log(room, "TRANSPARANTIE", "Transparantie geactiveerd (>=2 teams).");
+    } else {
+      log(room, "TRANSPARANTIE", `${role} vroeg transparantie aan (${count}/2).`);
+    }
+    broadcastRoom(room);
+  });
+
+  socket.on("force_transparency", ({roomId})=>{
+    const code = String(roomId||"").trim().toUpperCase();
+    const room = rooms.get(code);
+    if(!room) return socket.emit("error_msg","Room niet gevonden.");
+    room.transparency = true;
+    log(room, "TRANSPARANTIE", "Transparantie geforceerd door facilitator.");
+    broadcastRoom(room);
+  });
+
+  socket.on("start_reflection", ({roomId})=>{
+    const code = String(roomId||"").trim().toUpperCase();
+    const room = rooms.get(code);
+    if(!room) return socket.emit("error_msg","Room niet gevonden.");
+    if(room.phase !== "scenario") return socket.emit("error_msg","Reflectie kan alleen na scenario-einde. (Gebruik scenario-einde of timer)");
+    // optional: allow manual early end -> reflection
+    endScenario(room, "facilitator");
+  });
+
+  socket.on("submit_reflection", ({roomId, roleKey, text})=>{
+    const code = String(roomId||"").trim().toUpperCase();
+    const role = String(roleKey||"").trim();
+    const room = rooms.get(code);
+    if(!room) return socket.emit("error_msg","Room niet gevonden.");
+    if(room.phase !== "reflection") return socket.emit("error_msg","Reflectie is nu niet actief.");
+    const team = room.teams[role];
+    if(!team || team.socketId !== socket.id) return socket.emit("error_msg","Je hebt deze rol niet.");
+    const t = String(text||"").trim().slice(0, 250);
+    room.reflections.push({ scenarioId: room.scenarios[room.scenarioIndex].id, role, text: t, ts: Date.now() });
+    log(room, "REFLECTIE", `${role} reflectie ontvangen.`);
+    broadcastRoom(room);
+  });
+
+  socket.on("next", ({roomId})=>{
+    const code = String(roomId||"").trim().toUpperCase();
+    const room = rooms.get(code);
+    if(!room) return socket.emit("error_msg","Room niet gevonden.");
+    if(room.phase === "reflection"){
+      endReflection(room, "facilitator");
+    } else if(room.phase === "scenario"){
+      endScenario(room, "facilitator");
+    } else {
+      socket.emit("error_msg","Kan nu niet doorgaan.");
+    }
+  });
+
+  socket.on("reset_room", ({roomId})=>{
+    const code = String(roomId||"").trim().toUpperCase();
+    const room = rooms.get(code);
+    if(!room) return socket.emit("error_msg","Room niet gevonden.");
+    clearRoomTimers(room);
+    const fresh = makeRoom(code);
+    // keep facilitator token so report remains tied
+    fresh._facilitatorToken = room._facilitatorToken;
+    rooms.set(code, fresh);
+    log(fresh, "RESET", "Room gereset.");
+    broadcastRoom(fresh);
+  });
+
+  socket.on("disconnect", ()=>{
+    const roomId = socket.data.roomId;
+    const role = socket.data.role;
+    if(!roomId) return;
+    const room = rooms.get(roomId);
+    if(!room) return;
+
+    if(role && room.teams[role] && room.teams[role].socketId === socket.id){
+      room.teams[role].connected = false;
+      room.teams[role].socketId = null;
+      log(room, "LEAVE", `${role} disconnected.`);
+    }
+    if(room._facilitatorSocketId === socket.id){
+      room._facilitatorSocketId = null;
+      log(room, "LEAVE", "Facilitator disconnected.");
+    }
+    if(room._displaySocketId === socket.id){
+      room._displaySocketId = null;
+      log(room, "LEAVE", "Display disconnected.");
+    }
+    broadcastRoom(room);
+  });
+});
+
+server.listen(PORT, () => console.log("Server listening on", PORT));
