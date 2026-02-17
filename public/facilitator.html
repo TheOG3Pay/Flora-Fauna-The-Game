@@ -6,27 +6,20 @@
   <title>Operatie Oude Eik – Facilitator</title>
   <link rel="stylesheet" href="/theme.css"/>
   <style>
+    body{background:var(--bg)}
     .wrap{max-width:760px;margin:0 auto;padding:18px}
-    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:14px;margin-top:12px}
+    .card{background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:24px;padding:14px;margin-top:12px;box-shadow:var(--shadow)}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
-    .btn{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);cursor:pointer;font-weight:900}
-    .btn.primary{background:rgba(72,187,120,.22);border-color:rgba(72,187,120,.35)}
-    .btn.warn{background:rgba(221,107,32,.18);border-color:rgba(221,107,32,.30)}
-    .btn.danger{background:rgba(229,62,62,.18);border-color:rgba(229,62,62,.30)}
-    input{border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);color:#fff;padding:10px 12px}
+    input{border-radius:14px;border:1px solid var(--border);background:#fff;color:var(--ink);padding:10px 12px}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-    .big{font-size:28px;font-weight:1000}
-    .muted{opacity:.85}
-    .pill{display:inline-flex;align-items:center;gap:10px;border-radius:999px;padding:8px 12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);font-weight:800}
-    .dot{width:10px;height:10px;border-radius:999px;background:#999}
-    .dot.green{background:#38a169}.dot.orange{background:#dd6b20}.dot.red{background:#e53e3e}
+    .big{font-size:28px;font-weight:950;letter-spacing:-.02em}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-    a{color:#fff}
-    .log{max-height:240px;overflow:auto;font-size:12px;line-height:1.35;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px}
-    .log div{opacity:.9;margin:4px 0}
+    .log{max-height:240px;overflow:auto;font-size:12px;line-height:1.35;background:#fff;border:1px solid var(--border);border-radius:18px;padding:10px}
+    .log div{color:var(--muted);margin:4px 0}
+    .btn.warn{background:rgba(201,138,44,.12)}
   </style>
 </head>
-<body>
+<body class="bgPattern bgLeaves">
 <div class="wrap">
   <div class="row">
     <div style="display:flex;align-items:center;gap:10px">
@@ -86,6 +79,25 @@
     <div class="grid" id="teamGrid"></div>
   </div>
 
+
+  <div class="card">
+    <div class="row" style="align-items:flex-start">
+      <div style="flex:1;min-width:260px">
+        <div class="muted">Hulpverzoeken (teams)</div>
+        <div id="helpBox" class="log" style="max-height:180px"></div>
+      </div>
+      <div style="flex:1;min-width:260px">
+        <div class="muted">Snel naar GROEN (voor jou)</div>
+        <div class="mono" id="greenTarget" style="font-size:14px;line-height:1.4;white-space:pre-wrap"></div>
+        <div class="muted" id="facStatus" style="margin-top:8px"></div>
+      </div>
+    </div>
+    <div class="muted" style="margin-top:10px">
+      Teams kunnen om hulp vragen. Jij ziet hier de aanbevolen input om gezamenlijk op GROEN uit te komen. (Niet zichtbaar voor teams.)
+    </div>
+  </div>
+
+
   <div class="card">
     <div class="muted">Log</div>
     <div class="log" id="log"></div>
@@ -110,6 +122,7 @@ function dotClass(color){
 function phaseLabel(p){
   if(p==="lobby") return "Lobby";
   if(p==="scenario") return "Scenario";
+  if(p==="results") return "Resultaat";
   if(p==="reflection") return "Reflectie";
   if(p==="done") return "Einde";
   return p;
@@ -200,7 +213,14 @@ function escapeHtml(s){
 
 function render(state){
   document.getElementById("phaseTxt").textContent = phaseLabel(state.phase);
-  document.getElementById("phaseDot").className = dotClass(state.phase==="scenario"?"orange":(state.phase==="reflection"?"green":""));
+  document.getElementById("phaseDot").className = dotClass(state.phase==="scenario"?"orange":(state.phase==="results"?"orange":(state.phase==="reflection"?"green":"")));
+
+  // context-aware button label
+  const nextBtn = document.getElementById("nextBtn");
+  if(state.phase === "scenario") nextBtn.textContent = "Einde scenario";
+  else if(state.phase === "results") nextBtn.textContent = "Start reflectie (1 min)";
+  else if(state.phase === "reflection") nextBtn.textContent = "Volgende ronde";
+  else nextBtn.textContent = "Volgende";
 
   if(state.roomId){
     roomId = state.roomId;
@@ -208,6 +228,36 @@ function render(state){
     setLinks(roomId);
   }
   document.getElementById("reflCount").textContent = String(state.facilitator?.reflectionsCount || 0);
+
+  // facilitator-only: help requests + green target
+  const helpBox = document.getElementById("helpBox");
+  if(helpBox){
+    const reqs = (state.facilitator?.helpRequests || []).slice(-20).reverse();
+    helpBox.innerHTML = reqs.length ? reqs.map(r=>{
+      const dt = new Date(r.ts||Date.now());
+      return `<div><span class="muted">${dt.toLocaleTimeString()} · ${escapeHtml(r.scenarioId||"")}</span> — <b>${escapeHtml(r.role||"")}</b> vraagt hulp</div>`;
+    }).join("") : `<div class="muted">Nog geen hulpverzoeken.</div>`;
+  }
+
+  const gt = document.getElementById("greenTarget");
+  if(gt){
+    const g = state.facilitator?.greenTarget;
+    if(g){
+      const line = Object.entries(g).map(([role,val])=> `${role}: ${val}`).join(" | ");
+      gt.textContent = line;
+    } else {
+      gt.textContent = "—";
+    }
+  }
+
+  const fs = document.getElementById("facStatus");
+  if(fs){
+    const parts = [];
+    if(state.facilitator?.timerExpired) parts.push("⏱ Timer verlopen (spel pauzeert — jij bepaalt).");
+    if(state.facilitator?.readyToEnd) parts.push("✅ Alle keuzes binnen — je kunt het scenario afronden.");
+    fs.textContent = parts.join(" ");
+  }
+
 
   // team grid
   const grid = document.getElementById("teamGrid");

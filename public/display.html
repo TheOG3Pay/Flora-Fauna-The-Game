@@ -29,7 +29,7 @@
     .muted{opacity:.8}
   </style>
 </head>
-<body>
+<body class="bgPattern bgLeaves">
   <div class="wrap">
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:10px">
@@ -59,7 +59,9 @@
         <div style="font-size:18px;font-weight:800">Uitkomst</div>
         <div class="pill"><span class="dot" id="overallDot"></span><span id="overallTxt">--</span></div>
       </div>
-      <div class="grid" id="perRole"></div>
+      <div class="muted" style="margin-top:10px">Zo kwamen we tot dit resultaat:</div>
+      <div class="narrative" id="decisionStory" style="margin-top:8px;font-size:18px"></div>
+      <div class="grid" id="perRole" style="margin-top:12px"></div>
     </div>
 
     <div class="card" id="reflectionBox" style="display:none;margin-top:12px;">
@@ -90,6 +92,7 @@ function dotClass(color){
 function phaseLabel(p){
   if(p==="lobby") return "Lobby";
   if(p==="scenario") return "Scenario";
+  if(p==="results") return "Resultaat";
   if(p==="reflection") return "Reflectie";
   if(p==="done") return "Einde";
   return p;
@@ -97,10 +100,10 @@ function phaseLabel(p){
 
 function render(state){
   document.getElementById("phaseTxt").textContent = phaseLabel(state.phase);
-  document.getElementById("phaseDot").className = dotClass(state.phase==="scenario"?"orange":(state.phase==="reflection"?"green":""));
+  document.getElementById("phaseDot").className = dotClass(state.phase==="scenario"?"orange":(state.phase==="results"?"orange":(state.phase==="reflection"?"green":"")));
 
   const t = document.getElementById("timer");
-  t.textContent = state.phase==="lobby" ? "--:--" : mmss(state.remaining||0);
+  t.textContent = (state.phase==="scenario" || state.phase==="reflection") ? mmss(state.remaining||0) : "--:--";
   t.classList.toggle("warn", (state.remaining||0) <= 30 && (state.remaining||0) > 10 && state.phase!=="lobby");
   t.classList.toggle("danger", (state.remaining||0) <= 10 && state.phase!=="lobby");
 
@@ -124,18 +127,22 @@ function render(state){
     if(state.phase==="scenario"){
       d.className = chosen ? "dot green" : (team?.connected ? "dot orange" : "dot");
     }
+    if(state.phase==="results" && state.outcome?.perRole?.[r]){
+      d.className = dotClass(state.outcome.perRole[r].color);
+    }
     if(state.phase==="reflection"){
       d.className = "dot orange";
     }
     const txt = document.createElement("span");
-    txt.textContent = `${r}: ${team?.connected ? (chosen ? "Keuze binnen" : "Wacht...") : "Niet verbonden"}`;
+    const status = state.phase==="results" ? "Resultaat" : (chosen ? "Keuze binnen" : "Wacht...");
+    txt.textContent = `${r}: ${team?.connected ? status : "Niet verbonden"}`;
     pill.appendChild(d); pill.appendChild(txt);
     el.appendChild(pill);
   });
 
   // transparency
   const tb = document.getElementById("transparencyBox");
-  tb.style.display = state.transparency && state.phase==="scenario" ? "block" : "none";
+  tb.style.display = state.transparency && (state.phase==="scenario" || state.phase==="results") ? "block" : "none";
   const sug = document.getElementById("suggestions");
   sug.innerHTML = "";
   if(state.scenario && state.transparency){
@@ -152,6 +159,16 @@ function render(state){
   if(state.outcome){
     document.getElementById("overallTxt").textContent = state.outcome.overall.toUpperCase();
     document.getElementById("overallDot").className = dotClass(state.outcome.overall);
+    const ds = document.getElementById("decisionStory");
+    if(ds){
+      const db = state.outcome.decisionBreakdown || {};
+      const lines = Object.entries(db).map(([role,d])=>{
+        const c = d.color==="green"?"🟢":(d.color==="orange"?"🟠":"🔴");
+        return `${c} ${role}: ${d.choiceKey||"-"} — ${d.label}${d.rationale?`\n   ↳ ${d.rationale}`:""}`;
+      });
+      ds.textContent = lines.join("\n\n");
+    }
+
     const pr = document.getElementById("perRole");
     pr.innerHTML = "";
     Object.entries(state.outcome.perRole||{}).forEach(([role, v])=>{
@@ -161,7 +178,8 @@ function render(state){
         <div style="font-weight:900;font-size:16px">${role}</div>
         <div class="pill"><span class="${dotClass(v.color)}"></span><span>${(v.choiceKey||"-")}</span></div>
       </div>
-      <div class="muted" style="margin-top:6px">Status: ${v.color.toUpperCase()}</div>`;
+      <div class="muted" style="margin-top:6px">Status: ${v.color.toUpperCase()}</div>
+      <div class="muted" style="margin-top:8px">${(state.outcome.perRoleText && state.outcome.perRoleText[role]) ? state.outcome.perRoleText[role] : ""}</div>`;
       pr.appendChild(c);
     });
   }

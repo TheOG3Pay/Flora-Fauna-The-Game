@@ -8,46 +8,54 @@
   <style>
     .wrap{max-width:980px;margin:0 auto;padding:22px}
     .row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between}
-    .pill{display:inline-flex;align-items:center;gap:10px;border-radius:999px;padding:8px 12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);font-weight:700}
-    .dot{width:10px;height:10px;border-radius:999px;background:#999}
-    .dot.green{background:#38a169}.dot.orange{background:#dd6b20}.dot.red{background:#e53e3e}
-    .timer{font-size:26px;font-weight:900}
-    .panel{margin-top:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:16px}
-    .title{font-size:28px;font-weight:900;margin:6px 0 10px}
+    .timer{font-size:26px;font-weight:950;letter-spacing:-.01em}
+    .panel{margin-top:14px;background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:24px;padding:16px;box-shadow:var(--shadow)}
+    .title{font-size:28px;font-weight:950;margin:6px 0 10px;letter-spacing:-.01em}
     .narr{white-space:pre-wrap;font-size:16px;line-height:1.45}
+
+    /* role select */
     .roles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
-    .roleCard{padding:14px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.14);cursor:pointer;transition:.12s}
-    .roleCard:hover{transform:translateY(-1px);background:rgba(0,0,0,.20)}
-    .roleName{font-size:18px;font-weight:900}
-    .small{opacity:.85;font-size:13px;margin-top:6px}
-    .bigRole{font-size:16px;font-weight:900;opacity:.9}
-    .position{margin-top:10px;padding:12px;border-radius:16px;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.10);white-space:pre-wrap}
-    .secret{margin-top:10px;padding:12px;border-radius:16px;background:rgba(90,56,164,.18);border:1px solid rgba(160,130,255,.25)}
+    .roleCard{padding:14px;border-radius:20px;border:1px solid var(--border);background:#fff;cursor:pointer;transition:.12s;box-shadow:0 10px 22px rgba(16,42,67,.08)}
+    .roleCard:hover{transform:translateY(-2px)}
+    .roleName{font-size:18px;font-weight:950}
+    .small{color:var(--muted);font-size:13px;margin-top:6px}
+
+    /* in-game (big & readable) */
+    .bigRole{font-size:14px;font-weight:950;color:var(--muted)}
+    .position{margin-top:10px;padding:14px;border-radius:18px;background:#fff;border:1px solid var(--border);white-space:pre-wrap}
+    .secret{margin-top:10px;padding:14px;border-radius:18px;background:rgba(26,163,122,.08);border:1px solid rgba(26,163,122,.20)}
     .secret b{display:block;margin-bottom:6px}
-    .question{margin-top:14px;font-size:22px;font-weight:900}
+
+    .question{margin-top:14px;font-size:30px;font-weight:950;letter-spacing:-.02em}
     .options{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px}
-    .optBtn{text-align:left;padding:14px;border-radius:18px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);cursor:pointer}
-    .optBtn:hover{background:rgba(255,255,255,.10)}
-    .optKey{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.12);font-weight:900;margin-right:10px}
-    .optTitle{font-weight:900;font-size:18px}
-    .optDesc{opacity:.85;margin-top:6px;line-height:1.35}
-    .muted{opacity:.85}
-    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-    .btn{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);cursor:pointer;font-weight:800}
-    .btn.primary{background:rgba(72,187,120,.22);border-color:rgba(72,187,120,.35)}
-    .btn.danger{background:rgba(229,62,62,.18);border-color:rgba(229,62,62,.30)}
+    .optBtn{text-align:left;padding:16px;border-radius:20px;border:1px solid var(--border);background:#fff;cursor:pointer;box-shadow:0 10px 22px rgba(16,42,67,.07)}
+    .optBtn:hover{transform:translateY(-1px)}
+    .optKey{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;background:rgba(11,95,165,.08);border:1px solid rgba(11,95,165,.18);font-weight:950;margin-right:12px}
+    .optTitle{font-weight:950;font-size:18px}
+    .optDesc{color:var(--muted);margin-top:6px;line-height:1.35}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
     .hide{display:none !important}
-    textarea{width:100%;min-height:110px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);color:#fff;padding:12px;font-size:15px}
-    input{border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);color:#fff;padding:10px 12px}
+
+    textarea{width:100%;min-height:110px;border-radius:16px;border:1px solid var(--border);background:#fff;color:var(--ink);padding:12px;font-size:15px}
+    input{border-radius:14px;border:1px solid var(--border);background:#fff;color:var(--ink);padding:10px 12px}
+
+    .resultBox{margin-top:12px;padding:14px;border-radius:18px;border:1px solid var(--border);background:rgba(255,255,255,.92)}
+    .resultTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:950}
+    .resultText{margin-top:8px;white-space:pre-wrap;line-height:1.4}
+    .heroRow{display:flex;gap:12px;align-items:center;justify-content:space-between}
+    .miniMascot{height:56px;opacity:.95}
   </style>
 </head>
-<body>
+<body class="bgPattern bgLeaves">
 <div class="wrap">
   <div class="row">
-    <div style="display:flex;align-items:center;gap:10px">
-      <img src="/assets/logo_go.svg" alt="G&O" style="height:28px"/>
-      <span class="muted">×</span>
-      <img src="/assets/logo_eco.svg" alt="Ecoresult" style="height:28px"/>
+    <div class="heroRow">
+      <div style="display:flex;align-items:center;gap:10px">
+        <img src="/assets/logo_go.svg" alt="G&O" style="height:28px"/>
+        <span class="muted">×</span>
+        <img src="/assets/logo_eco.svg" alt="Ecoresult" style="height:28px"/>
+      </div>
+      <img class="miniMascot" src="/assets/mascot_eco.svg" alt="Natuur"/>
     </div>
     <div class="pill"><span class="dot" id="phaseDot"></span><span id="phaseTxt">Lobby</span></div>
     <div class="timer" id="timer">--:--</div>
@@ -84,8 +92,17 @@
     <div class="question" id="question">Wat doe je?</div>
     <div class="options" id="options"></div>
 
+    <div class="resultBox hide" id="myOutcomeBox">
+      <div class="resultTitle">
+        <span>Jouw status</span>
+        <span class="pill"><span class="dot" id="myOutcomeDot"></span><span id="myOutcomeLabel">--</span></span>
+      </div>
+      <div class="resultText" id="myOutcomeText"></div>
+    </div>
+
     <div class="actions">
       <button class="btn danger" id="transparencyBtn">Transparantie</button>
+      <button class="btn" id="hintBtn">Vraag hulp</button>
       <div class="muted" id="waitMsg"></div>
     </div>
   </div>
@@ -128,6 +145,7 @@ function mmss(sec){
 function phaseLabel(p){
   if(p==="lobby") return "Lobby";
   if(p==="scenario") return "Scenario";
+  if(p==="results") return "Resultaat";
   if(p==="reflection") return "Reflectie";
   if(p==="done") return "Einde";
   return p;
@@ -174,8 +192,10 @@ function claimRole(roleKey){
 
 function setPhase(state){
   document.getElementById("phaseTxt").textContent = phaseLabel(state.phase);
-  document.getElementById("phaseDot").className = dotClass(state.phase==="scenario" ? "orange" : (state.phase==="reflection" ? "green" : ""));
-  document.getElementById("timer").textContent = state.phase==="lobby" ? "--:--" : mmss(state.remaining||0);
+  document.getElementById("phaseDot").className = dotClass(
+    state.phase==="scenario" ? "orange" : (state.phase==="results" ? "orange" : (state.phase==="reflection" ? "green" : ""))
+  );
+  document.getElementById("timer").textContent = (state.phase==="scenario" || state.phase==="reflection") ? mmss(state.remaining||0) : "--:--";
 
   if(state.phase === "reflection"){
     show("reflectionPanel");
@@ -187,6 +207,9 @@ function setPhase(state){
 
 function renderRoleState(state){
   setPhase(state);
+
+  // default hide per-round feedback
+  hide("myOutcomeBox");
 
   if(state.phase === "lobby"){
     hide("joinPanel"); show("rolePanel");
@@ -236,8 +259,35 @@ function renderRoleState(state){
       document.getElementById("waitMsg").textContent = "✅ Keuze verzonden. Wachten op andere teams…";
       [...document.querySelectorAll(".optBtn")].forEach(x=>x.disabled=true);
     } else {
-      document.getElementById("waitMsg").textContent = "";
+      if(state.timerExpired){
+        document.getElementById("waitMsg").textContent = "⏱ Tijd is om. Wachten op facilitator…";
+      } else if(state.readyToEnd){
+        document.getElementById("waitMsg").textContent = "✅ Alle keuzes binnen. Wachten op facilitator om het scenario af te ronden…";
+      } else {
+        document.getElementById("waitMsg").textContent = "";
+      }
     }
+  }
+
+  if(state.phase === "results"){
+    hide("joinPanel"); hide("rolePanel"); show("gamePanel");
+    document.getElementById("scenarioTitle").textContent = state.scenario?.title || "Scenario";
+    document.getElementById("scenarioNarr").textContent = state.scenario?.narrative || "";
+    document.getElementById("myPosition").textContent = "Jouw positie:\n" + (state.my?.position || "");
+    document.getElementById("mySecretTxt").textContent = state.my?.secretGoal || "";
+
+    // lock buttons
+    [...document.querySelectorAll(".optBtn")].forEach(x=>x.disabled=true);
+
+    const o = state.my?.outcome;
+    if(o){
+      show("myOutcomeBox");
+      document.getElementById("myOutcomeLabel").textContent = (o.color||"-").toUpperCase();
+      document.getElementById("myOutcomeDot").className = dotClass(o.color);
+      document.getElementById("myOutcomeText").textContent = o.text || "";
+    }
+
+    document.getElementById("waitMsg").textContent = "⏳ Wacht op de facilitator: start reflectie (1 minuut).";
   }
 
   if(state.phase === "reflection"){
@@ -255,6 +305,13 @@ document.getElementById("transparencyBtn").onclick = ()=>{
   if(!myRole) return;
   socket.emit("request_transparency", { roomId, roleKey: myRole });
   document.getElementById("waitMsg").textContent = "🟣 Transparantie aangevraagd. Als 2 teams dit doen, verschijnt advies op het grote scherm.";
+};
+
+
+document.getElementById("hintBtn").onclick = ()=>{
+  if(!myRole) return;
+  socket.emit("request_hint", { roomId, roleKey: myRole });
+  document.getElementById("waitMsg").textContent = "🤝 Hulp gevraagd aan facilitator. Wacht op instructie om samen naar GROEN te komen.";
 };
 
 document.getElementById("sendReflBtn").onclick = ()=>{
