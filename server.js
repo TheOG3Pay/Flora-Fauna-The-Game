@@ -418,8 +418,46 @@ function stateForClient(room, role=null, isFacilitator=false, isDisplay=false){
       narrative: scenario.narrative,
     };
     if(isDisplay){
+      // Compromis-suggesties (alleen tonen als transparantie actief is)
+      // - In scenariofase: gebaseerd op huidige keuzes vs. groene target
+      // - In resultaatfase: gebaseerd op outcome.toGreen
+      const compromiseSuggestions = (()=>{
+        if(!room.transparency) return [];
+
+        const greenTarget = scenario.eval?.green || {};
+
+        // Prefer outcome when available
+        const toGreen = (room.outcome && room.outcome.toGreen) ? room.outcome.toGreen : (()=>{
+          const map = {};
+          ROLES.forEach(r=>{
+            const want = greenTarget[r];
+            const have = room.choices?.[r]?.choiceKey || null;
+            if(want && have && have !== want) map[r] = { from: have, to: want };
+            if(want && !have) map[r] = { from: null, to: want };
+          });
+          return map;
+        })();
+
+        const items = [];
+        const anyDiff = Object.keys(toGreen || {}).length > 0;
+        if(!anyDiff){
+          items.push("Jullie zitten (bijna) op groen. Borg het compromis: spreek stop-go momenten en scope-afspraken expliciet af.");
+          return items;
+        }
+
+        items.push("Om samen op GROEN uit te komen: minimaal één partij moet water bij de wijn doen. Overweeg deze aanpassingen:");
+        ROLES.forEach(r=>{
+          const v = toGreen[r];
+          if(!v) return;
+          const fromTxt = v.from ? v.from : "(nog geen keuze)";
+          items.push(`${r}: ga van ${fromTxt} → ${v.to}`);
+        });
+        items.push("Tip: check of fasering/voorwaarden (vooroverleg) het tempo kan behouden zonder juridisch risico te verhogen.");
+        return items;
+      })();
+
       base.display = {
-        suggestions: scenario.suggestions,
+        suggestions: compromiseSuggestions.length ? compromiseSuggestions : scenario.suggestions,
         positions: null
       };
     }
