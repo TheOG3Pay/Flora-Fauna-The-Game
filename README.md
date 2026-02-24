@@ -1,30 +1,10 @@
-# Operatie Oude Eik – Multiplayer v4 (AI-mode + echte multiplayer)
+# Operatie Oude Eik — Single Player (Render)
 
-## Routes
-- Players: `/`
-- Facilitator: `/facilitator`
+Dit is een **statische site** (alleen HTML/CSS/JS).
 
-## AI-mode (facilitator)
-- Zet **OPENAI_API_KEY** als environment variable op je host (Render/GitHub/whatever).
-- In `/facilitator` kun je AI-mode aanzetten.
-- AI-mode doet:
-  - Nieuwe scenario's genereren (tekst + parameters)
-  - Per ronde variaties in prompts & keuzeopties
-  - (Optioneel) een AI-beeld genereren per ronde (als je dit aan laat staan)
+## Lokaal testen
+Open `index.html` in je browser.
 
-> Geen key? Dan werkt het spel nog steeds (fallback scenario + vaste rondetemplates).
-
-## Lokaal draaien
-```bash
-npm install
-npm start
-```
-Open:
-- http://localhost:3000
-- http://localhost:3000/facilitator
-
-## Render (simpelste)
-Build: `npm install`  
-Start: `node server.js`  
-Env: `OPENAI_API_KEY=...`
-
+## Deploy op Render (Static Site)
+- Build command: (leeg laten)
+- Publish directory: .
